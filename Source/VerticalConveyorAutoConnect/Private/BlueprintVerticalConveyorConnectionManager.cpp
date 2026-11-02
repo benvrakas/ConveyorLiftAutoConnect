@@ -14,6 +14,7 @@
 #include "Hologram/FGBlueprintHologram.h"
 #include "Hologram/FGConveyorAttachmentHologram.h"
 #include "Hologram/FGConveyorLiftHologram.h"
+#include "Misc/ScopeExit.h"
 #include "Misc/SecureHash.h"
 #include "TimerManager.h"
 
@@ -544,6 +545,8 @@ void FBlueprintVerticalConveyorConnectionManager::UnregisterNearbyActor(AActor* 
 void FBlueprintVerticalConveyorConnectionManager::Initialize(
 	TArray<AFGBuildable*> buildables)
 {
+	const double startSeconds = FPlatformTime::Seconds();
+
 	// Child holograms are registered by name on the parent hologram. Destroy() is
 	// deferred and does not immediately remove that registration, so destroying a
 	// child and spawning another child with the same name in the same placement
@@ -619,19 +622,20 @@ void FBlueprintVerticalConveyorConnectionManager::Initialize(
 				}
 			}
 
+			// The bridge hologram is spawned on demand by EnsureBridgeRecipe once
+			// the state has a target. Spawning one per open endpoint here cost
+			// several milliseconds each, on every new blueprint hologram, including
+			// the one created right after each placement.
 			state.LiftRecipe = GetEndpointLiftRecipe(endpoint);
-			if (state.LiftRecipe)
-			{
-				SpawnBridgeHologram(state, ConnectionStates.Num() - 1);
-			}
 		}
 	}
 
 	UE_LOG(
 		LogVerticalConveyorAutoConnect,
 		Verbose,
-		TEXT("VerticalConveyorAutoConnect: initialized %d open vertical endpoints"),
-		ConnectionStates.Num());
+		TEXT("VerticalConveyorAutoConnect: initialized %d open vertical endpoints in %.1f ms"),
+		ConnectionStates.Num(),
+		(FPlatformTime::Seconds() - startSeconds) * 1000.0);
 }
 
 bool FBlueprintVerticalConveyorConnectionManager::
@@ -1681,6 +1685,64 @@ bool FBlueprintVerticalConveyorConnectionManager::ConfigureBridgeHologram(
 	return canConstruct;
 }
 
+bool FBlueprintVerticalConveyorConnectionManager::ConfigurePreviewBridgeHologram(
+	FConnectionState& state)
+{
+	// Reconfiguring a bridge rebuilds its lift mesh and clearance and reruns
+	// vanilla placement validation. While the blueprint and target do not move,
+	// every input is unchanged, so reuse the last successful result. Final
+	// construction always reconfigures (ConfigureBridgeHologram finalValidation).
+	const FEndpointRef blueprintEndpoint = GetBlueprintEndpoint(state, false);
+	const FEndpointRef targetEndpoint = GetTargetEndpoint(state);
+	const FTransform blueprintTransform =
+		GetEndpointWorldTransform(blueprintEndpoint);
+	const FTransform targetTransform =
+		GetEndpointWorldTransform(targetEndpoint);
+
+	if (state.HasPreviewBridgeCache &&
+		IsValid(state.BridgeHologram) &&
+		!state.BridgeHologram->IsDisabled() &&
+		state.PreviewBridgeHologram == state.BridgeHologram &&
+		state.PreviewBridgeRecipe == state.LiftRecipe &&
+		state.PreviewBridgeTarget == state.TargetBuildable &&
+		state.PreviewBridgeTargetKind == state.TargetKind &&
+		state.PreviewBridgeBlueprintSide == state.BlueprintSide &&
+		state.PreviewBridgeTargetSide == state.TargetSide &&
+		state.PreviewBridgeTargetConnectionName == state.TargetConnectionName &&
+		state.PreviewBridgeInputLowerDirection ==
+			state.ResolvedLowerEndpointDirection &&
+		state.PreviewBridgeSnapped == state.HasSnappedTarget &&
+		state.PreviewBridgeBlueprintTransform.Equals(blueprintTransform, 0.0) &&
+		state.PreviewBridgeTargetTransform.Equals(targetTransform, 0.0))
+	{
+		state.ResolvedLowerEndpointDirection =
+			state.PreviewBridgeOutputLowerDirection;
+		return true;
+	}
+
+	const EFactoryConnectionDirection inputLowerDirection =
+		state.ResolvedLowerEndpointDirection;
+	const bool canConstruct = ConfigureBridgeHologram(state, false, false);
+	state.HasPreviewBridgeCache = canConstruct;
+	if (canConstruct)
+	{
+		state.PreviewBridgeHologram = state.BridgeHologram;
+		state.PreviewBridgeRecipe = state.LiftRecipe;
+		state.PreviewBridgeTarget = state.TargetBuildable;
+		state.PreviewBridgeTargetKind = state.TargetKind;
+		state.PreviewBridgeBlueprintSide = state.BlueprintSide;
+		state.PreviewBridgeTargetSide = state.TargetSide;
+		state.PreviewBridgeTargetConnectionName = state.TargetConnectionName;
+		state.PreviewBridgeInputLowerDirection = inputLowerDirection;
+		state.PreviewBridgeOutputLowerDirection =
+			state.ResolvedLowerEndpointDirection;
+		state.PreviewBridgeSnapped = state.HasSnappedTarget;
+		state.PreviewBridgeBlueprintTransform = blueprintTransform;
+		state.PreviewBridgeTargetTransform = targetTransform;
+	}
+	return canConstruct;
+}
+
 void FBlueprintVerticalConveyorConnectionManager::DisableBridge(
 	FConnectionState& state)
 {
@@ -1823,7 +1885,7 @@ void FBlueprintVerticalConveyorConnectionManager::FindBestTarget(
 	FConnectionState& state,
 	int32 stateIndex,
 	const TSet<FEndpointKey>& claimedTargetEndpoints,
-	const TArray<AFGBuildable*>& discoveryBuildables)
+	const TArray<FTargetEndpointCandidate>& targetEndpoints)
 {
 	if (state.HasSnappedTarget && IsValid(state.TargetBuildable))
 	{
@@ -1859,77 +1921,84 @@ void FBlueprintVerticalConveyorConnectionManager::FindBestTarget(
 	// column: if the nearest endpoint cannot be used, do not tunnel through it
 	// to a farther endpoint at the same X/Y coordinates.
 	TArray<FPhysicalCandidate> physicalCandidates;
-	for (AFGBuildable* buildable : discoveryBuildables)
+	const FVector blueprintLocation =
+		GetEndpointWorldTransform(rawBlueprintEndpoint).GetLocation();
+	for (const FTargetEndpointCandidate& targetCandidate : targetEndpoints)
 	{
-		if (!IsValid(buildable))
+		const FEndpointRef& rawTargetEndpoint = targetCandidate.Endpoint;
+		if (!IsValid(rawTargetEndpoint.Buildable))
 		{
 			continue;
 		}
 
-		TArray<FEndpointRef> endpoints;
-		GatherEndpoints(buildable, false, false, endpoints);
-		for (const FEndpointRef& rawTargetEndpoint : endpoints)
+		// Same XY-column test IsGeometricallyCompatible applies below. Endpoint
+		// locations do not depend on Side, so the facing normalization cannot
+		// change its outcome; testing it first skips other columns cheaply.
+		if (!FMath::IsNearlyZero(targetCandidate.Location.X - blueprintLocation.X) ||
+			!FMath::IsNearlyZero(targetCandidate.Location.Y - blueprintLocation.Y))
 		{
-			// Attachment port identity is not interchangeable. Manual vanilla
-			// placement selects TopConnection for an upward span from the
-			// attachment and BottomConnection for a downward span. Filtering the
-			// wrong identity here also prevents it from claiming the floor-hole
-			// target before the correct sibling endpoint is evaluated.
-			if (!IsAttachmentPortForSpan(
-					rawBlueprintEndpoint,
-					rawTargetEndpoint) ||
-				!IsAttachmentPortForSpan(
-					rawTargetEndpoint,
-					rawBlueprintEndpoint))
-			{
-				continue;
-			}
+			continue;
+		}
 
-			FEndpointRef effectiveBlueprintEndpoint = rawBlueprintEndpoint;
-			FEndpointRef effectiveTargetEndpoint = rawTargetEndpoint;
-			NormalizeAttachmentFacingSides(
-				effectiveBlueprintEndpoint,
-				effectiveTargetEndpoint);
+		// Attachment port identity is not interchangeable. Manual vanilla
+		// placement selects TopConnection for an upward span from the
+		// attachment and BottomConnection for a downward span. Filtering the
+		// wrong identity here also prevents it from claiming the floor-hole
+		// target before the correct sibling endpoint is evaluated.
+		if (!IsAttachmentPortForSpan(
+				rawBlueprintEndpoint,
+				rawTargetEndpoint) ||
+			!IsAttachmentPortForSpan(
+				rawTargetEndpoint,
+				rawBlueprintEndpoint))
+		{
+			continue;
+		}
 
-			float verticalDistance = 0.0f;
-			bool canDirectlyConnect = false;
-			if (!IsGeometricallyCompatible(
+		FEndpointRef effectiveBlueprintEndpoint = rawBlueprintEndpoint;
+		FEndpointRef effectiveTargetEndpoint = rawTargetEndpoint;
+		NormalizeAttachmentFacingSides(
+			effectiveBlueprintEndpoint,
+			effectiveTargetEndpoint);
+
+		float verticalDistance = 0.0f;
+		bool canDirectlyConnect = false;
+		if (!IsGeometricallyCompatible(
+			effectiveBlueprintEndpoint,
+			effectiveTargetEndpoint,
+			verticalDistance,
+			canDirectlyConnect))
+		{
+			continue;
+		}
+		FEndpointRef blockingBlueprintEndpoint;
+		if (!canDirectlyConnect &&
+			HasInterveningBlueprintEndpoint(
 				effectiveBlueprintEndpoint,
 				effectiveTargetEndpoint,
-				verticalDistance,
-				canDirectlyConnect))
+				&blockingBlueprintEndpoint))
+		{
+			if (!LoggedSourceTunnelStates.Contains(stateIndex))
 			{
-				continue;
+				LoggedSourceTunnelStates.Add(stateIndex);
+				UE_LOG(
+					LogVerticalConveyorAutoConnect,
+					Verbose,
+					TEXT("VerticalConveyorAutoConnect: source-side no-tunnel state=%d source=%s blocker=%s target=%s"),
+					stateIndex,
+					*DescribeEndpoint(effectiveBlueprintEndpoint),
+					*DescribeEndpoint(blockingBlueprintEndpoint),
+					*DescribeEndpoint(effectiveTargetEndpoint));
 			}
-			FEndpointRef blockingBlueprintEndpoint;
-			if (!canDirectlyConnect &&
-				HasInterveningBlueprintEndpoint(
-					effectiveBlueprintEndpoint,
-					effectiveTargetEndpoint,
-					&blockingBlueprintEndpoint))
-			{
-				if (!LoggedSourceTunnelStates.Contains(stateIndex))
-				{
-					LoggedSourceTunnelStates.Add(stateIndex);
-					UE_LOG(
-						LogVerticalConveyorAutoConnect,
-						Verbose,
-						TEXT("VerticalConveyorAutoConnect: source-side no-tunnel state=%d source=%s blocker=%s target=%s"),
-						stateIndex,
-						*DescribeEndpoint(effectiveBlueprintEndpoint),
-						*DescribeEndpoint(blockingBlueprintEndpoint),
-						*DescribeEndpoint(effectiveTargetEndpoint));
-				}
-				continue;
-			}
-
-			FPhysicalCandidate& candidate =
-				physicalCandidates.AddDefaulted_GetRef();
-			candidate.BlueprintEndpoint = effectiveBlueprintEndpoint;
-			candidate.Endpoint = effectiveTargetEndpoint;
-			candidate.VerticalDistance = verticalDistance;
-			candidate.CanDirectlyConnect = canDirectlyConnect;
+			continue;
 		}
+
+		FPhysicalCandidate& candidate =
+			physicalCandidates.AddDefaulted_GetRef();
+		candidate.BlueprintEndpoint = effectiveBlueprintEndpoint;
+		candidate.Endpoint = effectiveTargetEndpoint;
+		candidate.VerticalDistance = verticalDistance;
+		candidate.CanDirectlyConnect = canDirectlyConnect;
 	}
 
 	physicalCandidates.Sort(
@@ -2068,7 +2137,7 @@ void FBlueprintVerticalConveyorConnectionManager::FindBestTarget(
 		}
 
 		if (EnsureBridgeRecipe(state, stateIndex, recipe) &&
-			ConfigureBridgeHologram(state, false, false))
+			ConfigurePreviewBridgeHologram(state))
 		{
 			state.IsValid = true;
 			return;
@@ -2120,6 +2189,29 @@ void FBlueprintVerticalConveyorConnectionManager::UpdateAutomaticConnections(
 	const FHitResult& /*hitResult*/,
 	bool& outPlaySnapEffects)
 {
+	const double startSeconds = FPlatformTime::Seconds();
+	ON_SCOPE_EXIT
+	{
+		const double elapsedSeconds = FPlatformTime::Seconds() - startSeconds;
+		++UpdateTimingCount;
+		UpdateTimingTotalSeconds += elapsedSeconds;
+		UpdateTimingMaxSeconds = FMath::Max(UpdateTimingMaxSeconds, elapsedSeconds);
+		if (UpdateTimingCount >= UpdateTimingLogInterval)
+		{
+			UE_LOG(
+				LogVerticalConveyorAutoConnect,
+				Verbose,
+				TEXT("VerticalConveyorAutoConnect: update timing states=%d calls=%d avg=%.2f ms max=%.2f ms"),
+				ConnectionStates.Num(),
+				UpdateTimingCount,
+				UpdateTimingTotalSeconds * 1000.0 / UpdateTimingCount,
+				UpdateTimingMaxSeconds * 1000.0);
+			UpdateTimingCount = 0;
+			UpdateTimingTotalSeconds = 0.0;
+			UpdateTimingMaxSeconds = 0.0;
+		}
+	};
+
 	NearbyBuildables.RemoveAllSwap(
 		[](const TWeakObjectPtr<AFGBuildable>& buildable)
 		{
@@ -2128,6 +2220,23 @@ void FBlueprintVerticalConveyorConnectionManager::UpdateAutomaticConnections(
 
 	TArray<AFGBuildable*> discoveryBuildables;
 	GatherDiscoveryCandidates(discoveryBuildables);
+
+	// Gather world endpoints once for all states instead of once per state.
+	TArray<FTargetEndpointCandidate> targetEndpoints;
+	TArray<FEndpointRef> buildableEndpoints;
+	for (AFGBuildable* buildable : discoveryBuildables)
+	{
+		buildableEndpoints.Reset();
+		GatherEndpoints(buildable, false, false, buildableEndpoints);
+		for (const FEndpointRef& endpoint : buildableEndpoints)
+		{
+			FTargetEndpointCandidate& candidate =
+				targetEndpoints.AddDefaulted_GetRef();
+			candidate.Endpoint = endpoint;
+			candidate.Location =
+				GetEndpointWorldTransform(endpoint).GetLocation();
+		}
+	}
 
 	TSet<FEndpointKey> claimedTargetEndpoints;
 	for (int32 stateIndex = 0; stateIndex < ConnectionStates.Num(); ++stateIndex)
@@ -2146,7 +2255,7 @@ void FBlueprintVerticalConveyorConnectionManager::UpdateAutomaticConnections(
 			state,
 			stateIndex,
 			claimedTargetEndpoints,
-			discoveryBuildables);
+			targetEndpoints);
 		if (state.IsValid && IsValid(state.TargetBuildable))
 		{
 			claimedTargetEndpoints.Add(MakeEndpointKey(GetTargetEndpoint(state)));
@@ -4293,6 +4402,16 @@ void FBlueprintVerticalConveyorConnectionManager::Construct(
 		Verbose,
 		TEXT("VerticalConveyorAutoConnect: construct begin states=%d"),
 		ConnectionStates.Num());
+	const double startSeconds = FPlatformTime::Seconds();
+	ON_SCOPE_EXIT
+	{
+		UE_LOG(
+			LogVerticalConveyorAutoConnect,
+			Verbose,
+			TEXT("VerticalConveyorAutoConnect: construct end bridges=%d in %.1f ms"),
+			outConstructedBridgeBuildables.Num(),
+			(FPlatformTime::Seconds() - startSeconds) * 1000.0);
+	};
 
 	for (int32 stateIndex = 0; stateIndex < ConnectionStates.Num(); ++stateIndex)
 	{

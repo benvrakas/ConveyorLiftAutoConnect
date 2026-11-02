@@ -70,6 +70,14 @@ private:
 		bool UsesBlueprintPreviewTransform = false;
 	};
 
+	// A world endpoint gathered once per UpdateAutomaticConnections call, with the
+	// location GetEndpointWorldTransform returned for it (independent of Side).
+	struct FTargetEndpointCandidate
+	{
+		FEndpointRef Endpoint;
+		FVector Location = FVector::ZeroVector;
+	};
+
 	struct FConnectionState
 	{
 		AFGBuildable* BlueprintBuildable = nullptr;
@@ -112,6 +120,28 @@ private:
 		bool HasSnappedTarget = false;
 		bool CanDirectlyConnect = false;
 		bool IsValid = false;
+
+		// Inputs of the last successful preview ConfigureBridgeHologram call, so
+		// an unchanged bridge is not reconfigured and revalidated every frame.
+		// Local to this hologram; not part of the construct message.
+		bool HasPreviewBridgeCache = false;
+		TObjectPtr<AFGConveyorLiftHologram> PreviewBridgeHologram = nullptr;
+		TSubclassOf<UFGRecipe> PreviewBridgeRecipe;
+		FTransform PreviewBridgeBlueprintTransform;
+		FTransform PreviewBridgeTargetTransform;
+		AFGBuildable* PreviewBridgeTarget = nullptr;
+		EBlueprintVerticalEndpointKind PreviewBridgeTargetKind =
+			EBlueprintVerticalEndpointKind::FloorHoleSide;
+		EBlueprintVerticalEndpointSide PreviewBridgeBlueprintSide =
+			EBlueprintVerticalEndpointSide::Top;
+		EBlueprintVerticalEndpointSide PreviewBridgeTargetSide =
+			EBlueprintVerticalEndpointSide::Bottom;
+		FName PreviewBridgeTargetConnectionName = NAME_None;
+		EFactoryConnectionDirection PreviewBridgeInputLowerDirection =
+			EFactoryConnectionDirection::FCD_ANY;
+		EFactoryConnectionDirection PreviewBridgeOutputLowerDirection =
+			EFactoryConnectionDirection::FCD_ANY;
+		bool PreviewBridgeSnapped = false;
 
 		friend FArchive& operator<<(FArchive& archive, FConnectionState& state)
 		{
@@ -317,6 +347,12 @@ private:
 	TArray<FEndpointRef> BlueprintPhysicalEndpoints;
 	TSet<int32> LoggedSourceTunnelStates;
 	TArray<TWeakObjectPtr<AFGBuildable>> NearbyBuildables;
+	// Verbose timing of UpdateAutomaticConnections, logged every
+	// UpdateTimingLogInterval calls.
+	static constexpr int32 UpdateTimingLogInterval = 300;
+	int32 UpdateTimingCount = 0;
+	double UpdateTimingTotalSeconds = 0.0;
+	double UpdateTimingMaxSeconds = 0.0;
 
 	static bool IsConveyorFloorHole(const AFGBuildablePassthrough* hole);
 	static bool TryGetAttachmentLiftPorts(
@@ -425,7 +461,7 @@ private:
 		FConnectionState& state,
 		int32 stateIndex,
 		const TSet<FEndpointKey>& claimedTargetEndpoints,
-		const TArray<AFGBuildable*>& discoveryBuildables);
+		const TArray<FTargetEndpointCandidate>& targetEndpoints);
 	void BroadcastConnectionStateChange(
 		const FEndpointRef& blueprintEndpoint,
 		const FEndpointRef& previousTargetEndpoint,
@@ -491,6 +527,7 @@ private:
 		FBridgeFinalizationPlan& plan,
 		AFGBuildableConveyorLift* lift) const;
 	void RegroupLinkedConveyor(AFGBuildableConveyorBase* conveyor) const;
+	bool ConfigurePreviewBridgeHologram(FConnectionState& state);
 	void SchedulePostConstructValidation(
 		const FBridgeFinalizationPlan& plan,
 		AFGBuildableConveyorLift* lift) const;
