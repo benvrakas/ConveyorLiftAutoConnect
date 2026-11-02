@@ -1,10 +1,28 @@
-# Vertical Conveyor Auto-Connect
+# Conveyor Lift Auto-Connect Plus
 
 Automatically bridges aligned vertical conveyor endpoints across blueprint
 boundaries with vanilla Conveyor Lifts.
 
 The mod is intended for vertically stacked blueprints where a conveyor path
 would otherwise need to be reconnected manually after every placement.
+
+Mod reference `ConveyorLiftAutoConnect`. Based on
+[Vertical Conveyor Auto-Connect](https://github.com/ZeeOcho/VerticalConveyorAutoConnect)
+1.0.4 by ZeeOcho, whose history this repository keeps. Changes since then:
+
+- generated bridges and direct seams join the conveyor group of the side that
+  was already in the world, so saves no longer contain split conveyor chains
+  that crash the next load
+  ([upstream issue #4](https://github.com/ZeeOcho/VerticalConveyorAutoConnect/issues/4));
+- bridge holograms are spawned only for endpoints that have a target, and
+  unchanged preview bridges are not reconfigured every frame, which removes the
+  placement freeze that grew with the number of lifts;
+- the mod stays inactive when `VerticalConveyorAutoConnect` is also installed.
+
+These changes were written with Anthropic Claude (Claude Code) and tested in
+game by benvrakas.
+
+## Notes from the original author (ZeeOcho)
 
 Disclaimer: Generative AI (ChatGPT) was used extensively by me to generate pretty
 much all code, documentation and artwork. I still in-game-tested the functionality

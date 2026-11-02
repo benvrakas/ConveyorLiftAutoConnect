@@ -31,7 +31,7 @@ Run `U6-U9` and `D6-D9` in both capability environments:
 - with a working runtime extension such as `VerticalLogisticsQoL`, all eight
   cases must preview, construct, and transport items in the intended direction.
 
-The compatibility test is behavioral. `VerticalConveyorAutoConnect` must not
+The compatibility test is behavioral. `ConveyorLiftAutoConnect` must not
 gain a plugin dependency, installation check, or type reference to the extension.
 
 For mixed supported cases also verify:

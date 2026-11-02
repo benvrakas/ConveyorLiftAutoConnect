@@ -1,7 +1,7 @@
 # Test fixtures
 
 This directory contains in-game Satisfactory blueprints used as regression
-fixtures for Vertical Conveyor Auto-Connect.
+fixtures for Conveyor Lift Auto-Connect Plus.
 
 The fixture blueprints are **test data**, not required by the packaged mod.
 They are stored in Git so the exact regression topology does not get lost as

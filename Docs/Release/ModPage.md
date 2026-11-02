@@ -1,8 +1,8 @@
-<!-- ficsit.app page texts for ConveyorLiftAutoConnect, the temporary fork of ZeeOcho's Vertical Conveyor Auto-Connect. -->
+<!-- ficsit.app page texts for Conveyor Lift Auto-Connect Plus (ConveyorLiftAutoConnect). -->
 
 # Name
 
-Conveyor Lift Auto-Connect (Fixed Fork)
+Conveyor Lift Auto-Connect Plus
 
 # Mod reference
 
@@ -10,7 +10,7 @@ ConveyorLiftAutoConnect
 
 # SHORT DESCRIPTION
 
-Temporary fork of Conveyor Lift Auto-Connect with the stacked-blueprint load crash fixed and faster placement.
+Auto-connects conveyor lifts between stacked blueprints, without the split chains that crash saves, and places fast.
 
 # FULL DESCRIPTION
 
@@ -18,7 +18,7 @@ See `FullDescription.md`.
 
 # SOURCE
 
-https://github.com/benvrakas/VerticalConveyorAutoConnect/tree/release/conveyor-lift-autoconnect
+https://github.com/benvrakas/ConveyorLiftAutoConnect
 
 # NETWORK ACTIVITY TRANSPARENCY
 
@@ -27,6 +27,7 @@ construction networking only.
 
 # AI USAGE TRANSPARENCY
 
-The original mod by ZeeOcho was developed with extensive help from generative AI (OpenAI ChatGPT), as its own page
-states. The changes in this fork (the conveyor chain fix, the placement speed-up and the release packaging) were
-investigated and written with Anthropic Claude (Claude Code), and tested in game by benvrakas.
+This mod is based on ZeeOcho's Vertical Conveyor Auto-Connect, which was developed with extensive help from generative
+AI (OpenAI ChatGPT), including its code, documentation and icon. The changes in this mod (the conveyor chain fix, the
+placement speed-up and the release packaging) were investigated and written with Anthropic Claude (Claude Code), and
+tested in game by benvrakas.

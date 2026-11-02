@@ -332,9 +332,9 @@ Before claiming multiplayer support, regression-test:
 
 Use the Satisfactory Modding Starter Project matching the game/SML version.
 Clone this repository into the Starter Project's `Mods/` directory so the folder
-containing `VerticalConveyorAutoConnect.uplugin` is named exactly:
+containing `ConveyorLiftAutoConnect.uplugin` is named exactly:
 
-`VerticalConveyorAutoConnect`
+`ConveyorLiftAutoConnect`
 
 Regenerate project files/build as needed, then use Alpakit for development or
 release packaging. The repository intentionally contains only mod/plugin source

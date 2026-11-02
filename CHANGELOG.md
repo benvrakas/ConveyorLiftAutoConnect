@@ -4,6 +4,23 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+## [Plus 1.0.0] - 2026-11-02
+
+Released as Conveyor Lift Auto-Connect Plus (`ConveyorLiftAutoConnect`).
+
+### Fixed
+
+- Generated bridges and direct seams are re-registered with the buildable
+  subsystem after linking, so they join the existing side's conveyor bucket and
+  chain instead of saving split chains (upstream issue #4).
+- Blueprint placement no longer spawns a bridge hologram for every open
+  endpoint; bridges are spawned on demand and unchanged previews are reused.
+
+### Added
+
+- Inactive with an error log when `VerticalConveyorAutoConnect` is installed.
+- Verbose timing lines for initialization, construction and preview updates.
+
 ## [1.0.4] - 2026-09-22
 
 ### Fixed

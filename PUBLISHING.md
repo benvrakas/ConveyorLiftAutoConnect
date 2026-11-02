@@ -6,11 +6,11 @@ This file is for the maintainer and can remain in the public repository.
 
 Use this exact mod reference everywhere:
 
-`VerticalConveyorAutoConnect`
+`ConveyorLiftAutoConnect`
 
 Recommended GitHub repository name:
 
-`VerticalConveyorAutoConnect`
+`ConveyorLiftAutoConnect`
 
 The mod reference becomes effectively permanent once the SMR/ficsit.app mod page
 is created, so do not rename it casually afterwards.
@@ -76,7 +76,7 @@ server targets as supported because they have not been tested. If you later add
 dedicated-server support, test and enable the corresponding target(s) in that
 release.
 
-The final upload file is the combined `VerticalConveyorAutoConnect.zip`
+The final upload file is the combined `ConveyorLiftAutoConnect.zip`
 produced by Alpakit Release.
 
 Inspect the archive before uploading.
@@ -94,9 +94,12 @@ The same artwork can be reused where appropriate.
 
 ## 7. Suggested ficsit.app text
 
+The current page texts are in `Docs/Release/` (ModPage.md and FullDescription.md); the
+suggestions below are from the original mod.
+
 ### Name
 
-Vertical Conveyor Auto-Connect
+Conveyor Lift Auto-Connect Plus
 
 ### Short description
 
