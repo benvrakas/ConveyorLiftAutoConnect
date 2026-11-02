@@ -4,6 +4,20 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+## [Plus 1.1.0] - 2026-11-02
+
+### Fixed
+
+- Endpoint positions count as equal within 1 mm. Positions loaded from a save are
+  single precision, so exact comparison found no column for blueprints stacked
+  onto anything from an earlier session at most map positions.
+
+### Added
+
+- Settings page (`ULiftAutoConnectConfig`): enable, lift tier source (blueprint
+  side first, faster lift, world side first), longest lift, detailed log.
+- With Verbose logging, each endpoint logs why it found no seam.
+
 ### Changed
 
 - Rewritten into separate parts for endpoints, search, bridge holograms, seam

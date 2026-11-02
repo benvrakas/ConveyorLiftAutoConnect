@@ -14,6 +14,7 @@ measured by ZeeOcho for Vertical Conveyor Auto-Connect; the code was restructure
 | `LiftBridgeHologram` | Spawns and reuses child lift holograms and puts them in the snapped state manual vanilla placement creates. |
 | `SeamLinker` | Construction: checks, links and verifies direct seams and generated lifts through `FSeamTransaction`, then regroups conveyor buckets. |
 | `SeamAudit` | Verbose-only next-tick check of links, buckets and chain actors. |
+| `LiftAutoConnectConfig` | The settings page (`UModConfiguration`) and the root game instance module that registers it. Properties are converted to SML's Blueprint widget classes before registration; the lift tier uses an enum dropdown whose names come from `SetEnumDisplayNameFn` in shipping builds. |
 | `LiftAutoConnectManager` | The `FGBlueprintOpenConnectionManagerBase` implementation: one `FSeamState` per open blueprint endpoint, preview updates, snapping, the construct message and construction. |
 
 Private game members are reached only by the classes listed in `Config/AccessTransformers.ini`, each for the reason

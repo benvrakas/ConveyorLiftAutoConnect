@@ -1,3 +1,14 @@
+# 1.1.0
+
+- Fixed: placing a blueprint onto blueprints from an earlier session (anything loaded from a save) connected nothing
+  at most map positions. Saved positions are slightly rounded, and endpoints had to line up exactly; they now count
+  as lined up within 1 mm.
+- New settings page (Mods menu and Satisfactory Mod Manager): turn auto-connect off, choose which lift sets the tier
+  (blueprint side first, faster lift, or world side first), cap the length of generated lifts, and turn on a detailed
+  log for bug reports.
+- Rewritten internally into smaller parts, with one undo path for every seam that fails to link. Placement works
+  the same.
+
 # 1.0.0
 
 First release, based on Vertical Conveyor Auto-Connect 1.0.4 by ZeeOcho.

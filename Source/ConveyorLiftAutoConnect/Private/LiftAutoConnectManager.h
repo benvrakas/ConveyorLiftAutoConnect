@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Hologram/FGBlueprintOpenConnectionManager.h"
+#include "LiftAutoConnectConfig.h"
 #include "LiftEndpoint.h"
 #include "SeamLinker.h"
 #include "SeamSearch.h"
@@ -86,14 +87,15 @@ private:
 		const TSet<FLiftEndpoint>& Claimed,
 		const TArray<FLocatedEndpoint>& Targets,
 		const TArray<FLocatedEndpoint>& Blockers);
-	// Blueprint side's adjacent lift tier first, then the target side's.
-	static TSubclassOf<UFGRecipe> ResolveRecipe(const FLiftEndpoint& Source, const FLiftEndpoint& Target);
+	// Recipe of the adjacent lift chosen by the lift tier setting.
+	TSubclassOf<UFGRecipe> ResolveRecipe(const FLiftEndpoint& Source, const FLiftEndpoint& Target) const;
 	bool EnsureBridge(FSeamState& State, int32 StateIndex, TSubclassOf<UFGRecipe> Recipe);
 	bool ConfigurePreviewBridge(FSeamState& State);
 	static void DisableBridge(FSeamState& State);
 	void BroadcastStateChange(const FSeamState& State, const FLiftEndpoint& PreviousTarget);
 	void ConstructSeam(FSeamState& State, TArray<AFGBuildable*>& OutConstructed, FNetConstructionID NetConstructionID);
 
+	FLiftAutoConnectSettings Settings;
 	TArray<FSeamState> States;
 	// Every vertical endpoint of the blueprint, open or not; spans may not cross them.
 	TArray<FLiftEndpoint> BlueprintEndpoints;

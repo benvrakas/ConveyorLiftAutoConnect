@@ -71,6 +71,8 @@ void FLiftAutoConnectManager::UnregisterNearbyActor(AActor* Actor)
 void FLiftAutoConnectManager::Initialize(TArray<AFGBuildable*> Buildables)
 {
 	const double StartSeconds = FPlatformTime::Seconds();
+	Settings = ULiftAutoConnectConfig::Read(GetHologram());
+	ULiftAutoConnectConfig::ApplyLogging(Settings);
 
 	for (FSeamState& State : States)
 	{
@@ -141,6 +143,13 @@ void FLiftAutoConnectManager::UpdateAutomaticConnections(const FHitResult& /*Hit
 	};
 
 	NearbyBuildables.RemoveAllSwap([](const TWeakObjectPtr<AFGBuildable>& Buildable) { return !Buildable.IsValid(); });
+
+	Settings = ULiftAutoConnectConfig::Read(GetHologram());
+	if (!Settings.bEnabled)
+	{
+		ResetAutomaticConnections();
+		return;
+	}
 
 	TArray<FLocatedEndpoint> Targets;
 	GatherTargets(Targets);
@@ -307,6 +316,11 @@ void FLiftAutoConnectManager::UpdateState(
 			return;
 		}
 
+		if (Settings.MaxLiftHeight > 0.0f && Candidate.Distance > Settings.MaxLiftHeight)
+		{
+			Refuse(Target, FString::Printf(TEXT("lift of %.1f m is longer than the setting allows"), Candidate.Distance / 100.0f));
+			continue;
+		}
 		const ELiftFlow Flow = SeamSearch::ResolveFlow(State.Source, Target);
 		if (Flow == ELiftFlow::Unknown)
 		{
@@ -377,10 +391,26 @@ void FLiftAutoConnectManager::UpdateState(
 	}
 }
 
-TSubclassOf<UFGRecipe> FLiftAutoConnectManager::ResolveRecipe(const FLiftEndpoint& Source, const FLiftEndpoint& Target)
+TSubclassOf<UFGRecipe> FLiftAutoConnectManager::ResolveRecipe(const FLiftEndpoint& Source, const FLiftEndpoint& Target) const
 {
-	const TSubclassOf<UFGRecipe> SourceRecipe = Source.GetAdjacentLiftRecipe();
-	return SourceRecipe ? SourceRecipe : Target.GetAdjacentLiftRecipe();
+	AFGBuildableConveyorLift* SourceLift = Source.GetAdjacentLift();
+	AFGBuildableConveyorLift* TargetLift = Target.GetAdjacentLift();
+	AFGBuildableConveyorLift* Chosen = nullptr;
+	switch (Settings.TierSource)
+	{
+	case ELiftTierSource::World:
+		Chosen = TargetLift ? TargetLift : SourceLift;
+		break;
+	case ELiftTierSource::Faster:
+		Chosen = SourceLift && TargetLift
+			? (TargetLift->GetSpeed() > SourceLift->GetSpeed() ? TargetLift : SourceLift)
+			: (SourceLift ? SourceLift : TargetLift);
+		break;
+	default:
+		Chosen = SourceLift ? SourceLift : TargetLift;
+		break;
+	}
+	return Chosen ? Chosen->GetBuiltWithRecipe() : nullptr;
 }
 
 bool FLiftAutoConnectManager::EnsureBridge(FSeamState& State, int32 StateIndex, TSubclassOf<UFGRecipe> Recipe)
@@ -542,7 +572,10 @@ void FLiftAutoConnectManager::PostConstructMessageDeserialization()
 	{
 		FSeamState& State = States[Index];
 		const FLiftEndpoint Target = State.GetTarget();
-		const TSubclassOf<UFGRecipe> Recipe = Target.HasBuildable() ? ResolveRecipe(State.Source, Target) : nullptr;
+		// The placing player's tier choice arrives as the recipe; only resolve one if it is missing.
+		const TSubclassOf<UFGRecipe> Recipe = !Target.HasBuildable() ? nullptr
+			: State.Recipe ? State.Recipe
+			: ResolveRecipe(State.Source, Target);
 		State.bValid = false;
 		if (!Recipe)
 		{

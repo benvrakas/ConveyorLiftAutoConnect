@@ -14,6 +14,15 @@ It is based on [Vertical Conveyor Auto-Connect](https://ficsit.app/mod/VerticalC
 - Every bridge is a real vanilla Conveyor Lift that must pass vanilla placement checks, including soft clearance. The mod adds no length or clearance rules of its own.
 - The first conveyor endpoint in a column ends the search, so it never tunnels through a nearer endpoint to reach a farther one.
 
+## Settings
+
+In the Mods menu (or Satisfactory Mod Manager), for the player placing the blueprint:
+
+- **Auto-connect lifts**: turn generated lifts off without uninstalling.
+- **Lift tier**: copy the tier from the blueprint side's lift first (default), from the faster of the two lifts, or from the world side's lift first.
+- **Longest lift (m)**: skip lifts longer than this; 0 leaves the length to vanilla.
+- **Detailed log**: write why each endpoint did or didn't connect to `FactoryGame.log`, for bug reports.
+
 **Tip:** after editing a blueprint in a way that changes the conveyors at a future seam, dismantle and rebuild the lifts, floor holes and splitters right at that seam before saving the blueprint. Satisfactory can keep stale connection state that looks right but no longer connects.
 
 ## Switching from Vertical Conveyor Auto-Connect
