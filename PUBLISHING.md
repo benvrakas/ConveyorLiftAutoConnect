@@ -39,6 +39,10 @@ The public-release source uses:
 "IsExperimentalVersion": false
 ```
 
+`Version` must equal the major number of `SemVersion`: ficsit.app rejects the upload
+otherwise ("SemVer major version should match Version"). Keep it at 1 for every 1.x
+release and change it only with a new major version.
+
 Keep the SML dependency at the version range actually tested.
 
 Use Alpakit's warning/update helper immediately before packaging to refresh
