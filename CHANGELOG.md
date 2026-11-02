@@ -4,6 +4,17 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- Rewritten into separate parts for endpoints, search, bridge holograms, seam
+  linking and auditing (see `DEVELOPMENT.md`). Placement behavior is unchanged.
+- Attachment lift ports have a fixed facing, so no per-span side rewriting.
+- Direct seams and generated lifts are linked through one transaction that undoes
+  every change on failure.
+- One next-tick seam audit replaces the separate bridge and direct audits.
+- The log category is now `LogConveyorLiftAutoConnect`, with shorter messages.
+- Spans are checked against blueprint endpoints located once per preview update.
+
 ## [Plus 1.0.0] - 2026-11-02
 
 Released as Conveyor Lift Auto-Connect Plus (`ConveyorLiftAutoConnect`).

@@ -86,6 +86,6 @@ body:
       label: FactoryGame.log
       description: |
         Drag the relevant log file here. For detailed diagnostics, enable
-        LogVerticalConveyorAutoConnect=Verbose.
+        LogConveyorLiftAutoConnect=Verbose.
     validations:
       required: true

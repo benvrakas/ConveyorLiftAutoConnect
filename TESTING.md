@@ -142,15 +142,17 @@ Before a public release:
 5. if server targets will be advertised, test the packaged Windows/Linux
    dedicated-server targets that will be enabled.
 
-## Finalization and persistence hardening
 
-With `LogVerticalConveyorAutoConnect=Verbose`, every successful generated bridge
-must log all three stages:
+## Construction and persistence
 
-1. `bridge preflight accepted`;
-2. `finalized` with each continuing side reported as `1` and each intentionally
-   bare Floor Hole side reported as `-1`;
-3. `post-construct audit passed` on the following tick.
+With `LogConveyorLiftAutoConnect=Verbose`, every generated bridge logs, in order:
+
+1. `Bridge planned flow=...`;
+2. `Final bridge ... canConstruct=1`;
+3. `Linked bridge ...`;
+4. `Seam audit passed ...` on the following tick, listing the lift and its neighbors with one shared `bucket`.
+
+Every direct seam logs `Linked direct seam ...` followed by `Seam audit passed ...`.
 
 Run the full U/D matrix and specifically repeat Floor Hole ↔ Floor Hole with:
 
@@ -164,53 +166,64 @@ reload, and verify flow. Repeat after allowing conveyor chains to run for at
 least one autosave interval. Then save, disable the mod, reload, and verify the
 generated vanilla lifts again.
 
-A deliberately stale or conflicting seam must fail before bridge construction
-with a specific `bridge preflight rejected` reason. It must not leave a generated
-lift or change either existing continuation. Any `post-construct audit failed`
-line is a regression artifact and should be retained with the save/log.
+A deliberately stale or conflicting seam must be refused with a `Bridge rejected (...)`
+or `Direct seam rejected (...)` line naming the reason. It must not leave a generated
+lift or change either existing continuation. Any `Seam audit failed`,
+`Seam link broke` or `Regrouping left split buckets` line is a regression artifact
+and should be retained with the save and log.
 
-## Coincident/direct seam hardening
+## Direct seams
 
 Direct seams are endpoint pairs at the same engine-equal location; they do not
-construct a bridge lift. With `LogVerticalConveyorAutoConnect=Verbose`, every
-successful direct seam must log all three stages:
-
-1. `direct preflight accepted`;
-2. `finalized direct connection`;
-3. `direct post-construct audit passed` on the following tick.
-
-Repeat exact-contact Floor Hole ↔ Floor Hole placement in both transport
-directions, with valid continuation lifts on both sides. Cover all of the
-following:
+construct a bridge lift. Repeat exact-contact Floor Hole ↔ Floor Hole placement in
+both transport directions, with valid continuation lifts on both sides. Cover:
 
 - an unedited saved blueprint;
 - a blueprint whose seam Floor Hole and continuation were rebuilt before save;
-- a stale saved source continuation mapping (must reject without changing the
+- a stale saved source continuation mapping (must be refused without changing the
   target or leaving either continuation partially linked);
 - a target claimed or connected after preview lock but before construction
-  (must reject without overwriting that connection);
+  (must be refused without overwriting that connection);
 - a blueprint-owned attachment port whose runtime direction has not yet been
   restored by `BeginPlay()`;
 - at least six direct seams finalized by one blueprint placement, followed by
   immediate save, quit to desktop, reload, and item-flow verification.
 
-Also test a 1 cm vertical offset and other short non-zero spans. They must remain
-on the generated-bridge path; this patch must not widen direct-contact tolerance
-or silently reinterpret nudge offsets as coincident geometry.
+Also test a 1 cm vertical offset and other short non-zero spans. They must stay on
+the generated-bridge path.
 
-Any `direct post-condition failed`, `direct finalization failed`, or
-`direct post-construct audit failed` line is a regression artifact and should be
-retained with the save and log.
+## Conveyor chain grouping (upstream issue #4)
+
+A generated bridge or direct seam must end up in the same conveyor bucket and chain
+actor as the conveyors on both sides, including the side that existed before the
+placement. Otherwise the save stores two chain actors on one connected path and the
+next load can crash in the factory tick.
+
+Place a blueprint with at least six seams onto an existing structure that already has
+continuation lifts, both above and below it, and check:
+
+1. each seam conveyor in another bucket than its neighbor logs `Regrouped ... bucket A -> B`;
+2. every `Seam audit passed` line shows one bucket for all listed conveyors;
+3. after save, quit to desktop and reload, the log has no
+   `LogConveyorChain: Warning: Detected conveyor chain tick group belonging to
+   multiple different chain actors` line for the seam lifts, and items flow.
+
+## Placement cost
+
+Bridge holograms are spawned only for endpoints with a target. Place a blueprint
+with at least 16 seams and check that `Initialized <n> open vertical endpoints in
+<t> ms` stays near 0 ms, `Constructed ... in <t> ms` stays in the tens of
+milliseconds, and `Preview update timing` averages a few milliseconds or less
+while the preview moves and while it is held still. Holding still must keep the
+same bridges; moving by any amount must re-evaluate them.
 
 ## Diagnostic logging
 
-Normal warnings are always useful in bug reports.
-
-For detailed diagnostics:
+Warnings are always useful in bug reports. For detailed diagnostics:
 
 ```ini
 [Core.Log]
-LogVerticalConveyorAutoConnect=Verbose
+LogConveyorLiftAutoConnect=Verbose
 ```
 
 A bug report should include:
