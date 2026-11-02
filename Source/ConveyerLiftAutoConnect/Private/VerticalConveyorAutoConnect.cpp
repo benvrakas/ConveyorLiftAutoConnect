@@ -4,6 +4,7 @@
 #include "FGConstructDisqualifier.h"
 #include "Hologram/FGBlueprintHologram.h"
 #include "Hologram/FGConveyorLiftHologram.h"
+#include "Interfaces/IPluginManager.h"
 #include "Patching/NativeHookManager.h"
 
 DEFINE_LOG_CATEGORY(LogVerticalConveyorAutoConnect);
@@ -54,6 +55,17 @@ void FVerticalConveyorAutoConnectModule::StartupModule()
 		return;
 	}
 
+	// Two copies of the manager would each generate a bridge for every seam.
+	const TSharedPtr<IPlugin> originalPlugin =
+		IPluginManager::Get().FindPlugin(TEXT("VerticalConveyorAutoConnect"));
+	if (originalPlugin.IsValid() && originalPlugin->IsEnabled())
+	{
+		UE_LOG(
+			LogVerticalConveyorAutoConnect,
+			Error,
+			TEXT("ConveyerLiftAutoConnect: VerticalConveyorAutoConnect is also installed; this fork stays inactive. Remove one of the two mods."));
+		return;
+	}
 
 	BlueprintBeginPlayHook = SUBSCRIBE_METHOD_VIRTUAL(
 		AFGBlueprintHologram::BeginPlay,
@@ -100,4 +112,4 @@ void FVerticalConveyorAutoConnectModule::ShutdownModule()
 
 IMPLEMENT_MODULE(
 	FVerticalConveyorAutoConnectModule,
-	VerticalConveyorAutoConnect)
+	ConveyerLiftAutoConnect)

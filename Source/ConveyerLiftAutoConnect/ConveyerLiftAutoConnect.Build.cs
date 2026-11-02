@@ -1,8 +1,8 @@
 using UnrealBuildTool;
 
-public class VerticalConveyorAutoConnect : ModuleRules
+public class ConveyerLiftAutoConnect : ModuleRules
 {
-	public VerticalConveyorAutoConnect(ReadOnlyTargetRules Target) : base(Target)
+	public ConveyerLiftAutoConnect(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		CppStandard = CppStandardVersion.Cpp20;
@@ -12,6 +12,7 @@ public class VerticalConveyorAutoConnect : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			"Projects",
 			"FactoryGame",
 			"SML",
 			"DummyHeaders"
