@@ -69,6 +69,8 @@ private:
 
 		bool bValid = false;
 		TOptional<FBridgeConfigKey> ConfiguredBridge;
+		// Last logged reason this state found no seam, with digits masked.
+		FString LastRefusal;
 
 		FLiftEndpoint GetTarget() const;
 		void SetTarget(const FLiftEndpoint& Target);

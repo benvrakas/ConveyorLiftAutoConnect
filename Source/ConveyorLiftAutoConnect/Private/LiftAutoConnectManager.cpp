@@ -3,6 +3,7 @@
 #include "Buildables/FGBuildableConveyorLift.h"
 #include "ConveyorLiftAutoConnectModule.h"
 #include "FGBuildableSubsystem.h"
+#include "FGConstructDisqualifier.h"
 #include "FGRecipe.h"
 #include "Hologram/FGBlueprintHologram.h"
 #include "Hologram/FGConveyorLiftHologram.h"
@@ -249,9 +250,10 @@ void FLiftAutoConnectManager::UpdateState(
 		return;
 	}
 
+	const FVector SourceLocation = State.Source.GetLocation();
 	TArray<FSeamCandidate> Candidates;
 	FLiftEndpoint Blocker;
-	SeamSearch::FindNearestPlane(State.Source, State.Source.GetLocation(), Targets, Blockers, Candidates, &Blocker);
+	SeamSearch::FindNearestPlane(State.Source, SourceLocation, Targets, Blockers, Candidates, &Blocker);
 	if (Blocker.HasBuildable() && !ReportedBlockedStates.Contains(StateIndex))
 	{
 		ReportedBlockedStates.Add(StateIndex);
@@ -259,17 +261,29 @@ void FLiftAutoConnectManager::UpdateState(
 			StateIndex, *State.Source.Describe(), *Blocker.Describe());
 	}
 
+	const bool bExplain = UE_LOG_ACTIVE(LogConveyorLiftAutoConnect, Verbose);
+	FString Refusals;
+	auto Refuse = [bExplain, &Refusals](const FLiftEndpoint& Target, const FString& Reason)
+	{
+		if (bExplain)
+		{
+			Refusals += FString::Printf(TEXT(" %s: %s;"), *Target.Describe(), *Reason);
+		}
+	};
+
 	// Only the nearest plane is tried, so a lift never passes through a closer endpoint.
 	for (const FSeamCandidate& Candidate : Candidates)
 	{
 		const FLiftEndpoint& Target = Candidate.Target;
 		if (!Target.IsOpen() || Claimed.Contains(Target))
 		{
+			Refuse(Target, Target.IsOpen() ? TEXT("claimed by another endpoint") : TEXT("taken"));
 			continue;
 		}
 		const TSubclassOf<UFGRecipe> Recipe = ResolveRecipe(State.Source, Target);
 		if (!Recipe)
 		{
+			Refuse(Target, TEXT("no adjacent lift on either side"));
 			continue;
 		}
 
@@ -279,6 +293,7 @@ void FLiftAutoConnectManager::UpdateState(
 			EFactoryConnectionDirection TargetDirection;
 			if (!SeamSearch::CanLinkDirectly(State.Source.GetContinuation(), Target.GetContinuation(), SourceDirection, TargetDirection))
 			{
+				Refuse(Target, TEXT("touching, but the conveyors cannot be linked"));
 				continue;
 			}
 			State.SetTarget(Target);
@@ -287,6 +302,7 @@ void FLiftAutoConnectManager::UpdateState(
 			State.DirectTargetDirection = TargetDirection;
 			State.Recipe = Recipe;
 			State.bValid = true;
+			State.LastRefusal.Reset();
 			DisableBridge(State);
 			return;
 		}
@@ -294,6 +310,8 @@ void FLiftAutoConnectManager::UpdateState(
 		const ELiftFlow Flow = SeamSearch::ResolveFlow(State.Source, Target);
 		if (Flow == ELiftFlow::Unknown)
 		{
+			Refuse(Target, FString::Printf(TEXT("flow unresolved (source %s, target %s)"),
+				LiftAutoConnect::ToString(State.Source.GetImpliedFlow()), LiftAutoConnect::ToString(Target.GetImpliedFlow())));
 			continue;
 		}
 		State.SetTarget(Target);
@@ -301,12 +319,62 @@ void FLiftAutoConnectManager::UpdateState(
 		if (EnsureBridge(State, StateIndex, Recipe) && ConfigurePreviewBridge(State))
 		{
 			State.bValid = true;
+			State.LastRefusal.Reset();
 			return;
+		}
+		if (bExplain)
+		{
+			TArray<TSubclassOf<UFGConstructDisqualifier>> Disqualifiers;
+			if (IsValid(State.Bridge))
+			{
+				State.Bridge->GetConstructDisqualifiers(Disqualifiers);
+			}
+			FString Names;
+			for (const TSubclassOf<UFGConstructDisqualifier>& Disqualifier : Disqualifiers)
+			{
+				Names += (Names.IsEmpty() ? TEXT("") : TEXT(",")) + GetNameSafe(Disqualifier.Get());
+			}
+			Refuse(Target, FString::Printf(TEXT("lift %s refused [%s]"), LiftAutoConnect::ToString(Flow), *Names));
 		}
 	}
 
 	State.ClearTarget();
 	DisableBridge(State);
+
+	if (bExplain)
+	{
+		if (Candidates.IsEmpty())
+		{
+			// The closest world endpoint by horizontal distance, to show near misses of the column match.
+			const FLocatedEndpoint* Closest = nullptr;
+			for (const FLocatedEndpoint& Target : Targets)
+			{
+				if (!Closest || FVector::DistSquared2D(Target.Location, SourceLocation) < FVector::DistSquared2D(Closest->Location, SourceLocation))
+				{
+					Closest = &Target;
+				}
+			}
+			Refusals = Closest
+				? FString::Printf(TEXT(" no endpoint in the column (%d world endpoints; closest %s off by x=%.4f y=%.4f z=%.1f)"),
+					Targets.Num(), *Closest->Endpoint.Describe(), Closest->Location.X - SourceLocation.X,
+					Closest->Location.Y - SourceLocation.Y, Closest->Location.Z - SourceLocation.Z)
+				: TEXT(" no world endpoints found");
+		}
+		// Log when the kind of refusal changes, not on every moved frame.
+		FString Signature = Refusals;
+		for (TCHAR& Char : Signature)
+		{
+			if (FChar::IsDigit(Char))
+			{
+				Char = TEXT('#');
+			}
+		}
+		if (Signature != State.LastRefusal)
+		{
+			State.LastRefusal = Signature;
+			UE_LOG(LogConveyorLiftAutoConnect, Verbose, TEXT("State %d: %s found no seam:%s"), StateIndex, *State.Source.Describe(), *Refusals);
+		}
+	}
 }
 
 TSubclassOf<UFGRecipe> FLiftAutoConnectManager::ResolveRecipe(const FLiftEndpoint& Source, const FLiftEndpoint& Target)
