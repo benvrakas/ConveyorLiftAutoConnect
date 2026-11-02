@@ -2,9 +2,18 @@
 
 namespace
 {
+	// Largest offset, in cm, between two endpoint positions that count as the same; covers single-precision rounding
+	// of positions loaded from a save.
+	constexpr double PositionTolerance = 0.1;
+
 	bool IsSameColumn(const FVector& First, const FVector& Second)
 	{
-		return FMath::IsNearlyZero(First.X - Second.X) && FMath::IsNearlyZero(First.Y - Second.Y);
+		return FMath::Abs(First.X - Second.X) <= PositionTolerance && FMath::Abs(First.Y - Second.Y) <= PositionTolerance;
+	}
+
+	bool IsSameHeight(double First, double Second)
+	{
+		return FMath::Abs(First - Second) <= PositionTolerance;
 	}
 
 	// A blueprint endpoint of another buildable strictly between the source and target heights in the source's column.
@@ -26,7 +35,7 @@ namespace
 			{
 				continue;
 			}
-			if (Blocker.Location.Z > MinZ && Blocker.Location.Z < MaxZ)
+			if (Blocker.Location.Z > MinZ + PositionTolerance && Blocker.Location.Z < MaxZ - PositionTolerance)
 			{
 				return &Blocker;
 			}
@@ -36,7 +45,7 @@ namespace
 
 	bool IsCandidateBefore(const FSeamCandidate& First, const FSeamCandidate& Second)
 	{
-		if (!FMath::IsNearlyEqual(First.Distance, Second.Distance))
+		if (!IsSameHeight(First.Distance, Second.Distance))
 		{
 			return First.Distance < Second.Distance;
 		}
@@ -70,7 +79,7 @@ ESeamGeometry SeamSearch::Classify(
 	}
 
 	// An attachment port only takes lifts on its own side, unless the two endpoints are level.
-	const bool bLevel = FMath::IsNearlyEqual(SourceLocation.Z, TargetLocation.Z);
+	const bool bLevel = IsSameHeight(SourceLocation.Z, TargetLocation.Z);
 	auto PortFacesOther = [bLevel](const FLiftEndpoint& Endpoint, double OwnZ, double OtherZ)
 	{
 		return Endpoint.Kind != ELiftEndpointKind::AttachmentPort || bLevel ||
@@ -82,7 +91,7 @@ ESeamGeometry SeamSearch::Classify(
 	}
 
 	const FVector Delta = TargetLocation - SourceLocation;
-	if (Delta.IsNearlyZero())
+	if (bLevel)
 	{
 		const FVector SourceNormal = Source.GetOutwardNormal().GetSafeNormal();
 		const FVector TargetNormal = Target.GetOutwardNormal().GetSafeNormal();
@@ -138,7 +147,7 @@ void SeamSearch::FindNearestPlane(
 		const float Nearest = OutCandidates[0].Distance;
 		const int32 FirstFarther = OutCandidates.IndexOfByPredicate([Nearest](const FSeamCandidate& Candidate)
 		{
-			return !FMath::IsNearlyEqual(Candidate.Distance, Nearest);
+			return !IsSameHeight(Candidate.Distance, Nearest);
 		});
 		if (FirstFarther != INDEX_NONE)
 		{

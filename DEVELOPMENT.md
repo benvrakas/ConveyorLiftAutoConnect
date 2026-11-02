@@ -23,8 +23,14 @@ given there.
 
 The mod creates the state manual Conveyor Lift placement would create; it is not an independent connection system.
 A real `AFGConveyorLiftHologram` decides validity: after configuration the normal vanilla validation runs and the
-bridge counts only when `CanConstruct()` is true. There are no mod-defined distance, height, clearance or angle limits;
-numeric tolerances are the engine's own `IsNearlyZero`/`IsNearlyEqual`/`Equals` defaults.
+bridge counts only when `CanConstruct()` is true. There are no mod-defined distance, height, clearance or angle limits.
+
+Endpoint positions count as equal within 1 mm (`PositionTolerance` in `SeamSearch.cpp`): column match, touching
+seams, level ports and the nearest plane. Saves store positions in single precision, so buildables loaded from a save
+sit up to about 0.03 cm (half a float step at the map's largest coordinates) from where they were built, while
+blueprint previews and newly built buildables are exact. Exact comparison made stacking onto anything loaded from a
+save fail at most map positions; measured offsets were 0.002 to 0.011 cm. Distinct endpoints are tens of centimetres
+apart, so 1 mm cannot pair the wrong ones. Normals still use the engine's default `Equals` tolerance.
 
 The one correction is dropping `UFGCDInvalidFloor` from holograms tagged as synthetic bridges whose parent is a
 blueprint hologram: the blueprint placement context makes the child inherit it transiently, and a finished lift needs
