@@ -21,4 +21,4 @@ Saves made with the original mod while stacking blueprints may already contain s
 
 ## Credits and source
 
-Original mod and almost all code: **ZeeOcho** ([source](https://github.com/ZeeOcho/VerticalConveyorAutoConnect)). Fork changes: benvrakas. Licensed GPL-3.0; this fork's source is [here](https://github.com/benvrakas/VerticalConveyorAutoConnect/tree/release/conveyer-lift-autoconnect).
+Original mod and almost all code: **ZeeOcho** ([source](https://github.com/ZeeOcho/VerticalConveyorAutoConnect)). Fork changes: benvrakas. Licensed GPL-3.0; this fork's source is [here](https://github.com/benvrakas/VerticalConveyorAutoConnect/tree/release/conveyor-lift-autoconnect).

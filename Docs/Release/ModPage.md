@@ -1,4 +1,4 @@
-<!-- ficsit.app page texts for ConveyerLiftAutoConnect, the temporary fork of ZeeOcho's Vertical Conveyor Auto-Connect. -->
+<!-- ficsit.app page texts for ConveyorLiftAutoConnect, the temporary fork of ZeeOcho's Vertical Conveyor Auto-Connect. -->
 
 # Name
 
@@ -6,7 +6,7 @@ Conveyor Lift Auto-Connect (Fixed Fork)
 
 # Mod reference
 
-ConveyerLiftAutoConnect
+ConveyorLiftAutoConnect
 
 # SHORT DESCRIPTION
 
@@ -18,7 +18,7 @@ See `FullDescription.md`.
 
 # SOURCE
 
-https://github.com/benvrakas/VerticalConveyorAutoConnect/tree/release/conveyer-lift-autoconnect
+https://github.com/benvrakas/VerticalConveyorAutoConnect/tree/release/conveyor-lift-autoconnect
 
 # NETWORK ACTIVITY TRANSPARENCY
 

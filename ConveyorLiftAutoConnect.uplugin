@@ -9,7 +9,7 @@
 	"Category": "Modding",
 	"CreatedBy": "ZeeOcho, benvrakas",
 	"CreatedByURL": "https://github.com/benvrakas",
-	"DocsURL": "https://github.com/benvrakas/VerticalConveyorAutoConnect/tree/release/conveyer-lift-autoconnect",
+	"DocsURL": "https://github.com/benvrakas/VerticalConveyorAutoConnect/tree/release/conveyor-lift-autoconnect",
 	"MarketplaceURL": "",
 	"SupportURL": "https://github.com/benvrakas/VerticalConveyorAutoConnect/issues",
 	"CanContainContent": false,
@@ -18,7 +18,7 @@
 	"Installed": false,
 	"Modules": [
 		{
-			"Name": "ConveyerLiftAutoConnect",
+			"Name": "ConveyorLiftAutoConnect",
 			"Type": "Runtime",
 			"LoadingPhase": "PostDefault"
 		}

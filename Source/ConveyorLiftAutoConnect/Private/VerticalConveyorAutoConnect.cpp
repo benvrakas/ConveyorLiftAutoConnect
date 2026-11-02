@@ -63,7 +63,7 @@ void FVerticalConveyorAutoConnectModule::StartupModule()
 		UE_LOG(
 			LogVerticalConveyorAutoConnect,
 			Error,
-			TEXT("ConveyerLiftAutoConnect: VerticalConveyorAutoConnect is also installed; this fork stays inactive. Remove one of the two mods."));
+			TEXT("ConveyorLiftAutoConnect: VerticalConveyorAutoConnect is also installed; this fork stays inactive. Remove one of the two mods."));
 		return;
 	}
 
@@ -112,4 +112,4 @@ void FVerticalConveyorAutoConnectModule::ShutdownModule()
 
 IMPLEMENT_MODULE(
 	FVerticalConveyorAutoConnectModule,
-	ConveyerLiftAutoConnect)
+	ConveyorLiftAutoConnect)
