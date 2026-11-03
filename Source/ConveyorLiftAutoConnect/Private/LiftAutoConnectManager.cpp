@@ -541,100 +541,99 @@ void FLiftAutoConnectManager::HandleBuildableConnectionRemapping(AFGBuildable* B
 
 void FLiftAutoConnectManager::SerializeConstructMessage(FArchive& Archive, FNetConstructionID /*Id*/)
 {
-	// Only seams with a target are sent; the message is capped at 64 KB and object references are written as paths.
-	// The bridge preview is not sent, the receiver finds it by name in PostConstructMessageDeserialization.
-	int32 SentCount = 0;
-	if (Archive.IsSaving())
+	// The blueprint's own data nearly fills the 64 KB message, so only one bit per seam and the placing player's
+	// search settings are sent; the receiver searches the same world again in PostConstructMessageDeserialization.
+	uint8 TierSource = static_cast<uint8>(Settings.TierSource);
+	float MaxLiftHeight = Settings.MaxLiftHeight;
+	int32 StateCount = States.Num();
+	Archive << TierSource << MaxLiftHeight << StateCount;
+	if (Archive.IsLoading())
 	{
-		for (const FSeamState& State : States)
+		Settings.TierSource = static_cast<ELiftTierSource>(TierSource);
+		Settings.MaxLiftHeight = MaxLiftHeight;
+	}
+	if (StateCount < 0 || StateCount > MaxSerializedStates)
+	{
+		UE_LOG(LogConveyorLiftAutoConnect, Error, TEXT("Construct message has an invalid seam count %d; connecting none"), StateCount);
+		for (FSeamState& State : States)
 		{
-			SentCount += State.bValid && State.TargetBuildable.IsValid() ? 1 : 0;
+			State.bConnectOnConstruct = false;
+		}
+		Archive.SetError();
+		return;
+	}
+	const bool bMatches = StateCount == States.Num();
+	if (!bMatches)
+	{
+		UE_LOG(LogConveyorLiftAutoConnect, Error, TEXT("Construct message has %d seams, the blueprint has %d; connecting none"),
+			StateCount, States.Num());
+	}
+
+	// The bytes are always read in full so the data after them stays aligned.
+	for (int32 First = 0; First < StateCount; First += 8)
+	{
+		uint8 Bits = 0;
+		for (int32 Bit = 0; Bit < 8 && First + Bit < StateCount && bMatches; ++Bit)
+		{
+			const FSeamState& State = States[First + Bit];
+			Bits |= State.bValid && State.TargetBuildable.IsValid() ? 1 << Bit : 0;
+		}
+		Archive << Bits;
+		for (int32 Bit = 0; Bit < 8 && First + Bit < StateCount && bMatches; ++Bit)
+		{
+			States[First + Bit].bConnectOnConstruct = (Bits & 1 << Bit) != 0;
 		}
 	}
-	Archive << SentCount;
-
-	if (Archive.IsLoading())
+	if (!bMatches)
 	{
 		for (FSeamState& State : States)
 		{
-			State.ClearTarget();
-		}
-	}
-
-	int32 SentSoFar = 0;
-	for (int32 Index = 0; Index < States.Num() && SentSoFar < SentCount; ++Index)
-	{
-		if (Archive.IsSaving() && !(States[Index].bValid && States[Index].TargetBuildable.IsValid()))
-		{
-			continue;
-		}
-		int32 StateIndex = Index;
-		Archive << StateIndex;
-		if (!States.IsValidIndex(StateIndex))
-		{
-			UE_LOG(LogConveyorLiftAutoConnect, Error, TEXT("Construct message names seam %d of %d"), StateIndex, States.Num());
-			return;
-		}
-		FSeamState& State = States[StateIndex];
-		++SentSoFar;
-
-		UObject* Target = State.TargetBuildable.Get();
-		uint8 Kind = static_cast<uint8>(State.TargetKind);
-		uint8 Facing = static_cast<uint8>(State.TargetFacing);
-		uint8 Flow = static_cast<uint8>(State.Flow);
-		uint8 SourceDirection = static_cast<uint8>(State.DirectSourceDirection);
-		uint8 TargetDirection = static_cast<uint8>(State.DirectTargetDirection);
-
-		Archive << Target << Kind << Facing << State.TargetPort << State.Recipe << Flow;
-		Archive << SourceDirection << TargetDirection << State.bDirect << State.bSnapped;
-
-		if (Archive.IsLoading())
-		{
-			State.TargetBuildable = Cast<AFGBuildable>(Target);
-			State.TargetKind = static_cast<ELiftEndpointKind>(Kind);
-			State.TargetFacing = static_cast<ELiftFacing>(Facing);
-			State.Flow = static_cast<ELiftFlow>(Flow);
-			State.DirectSourceDirection = static_cast<EFactoryConnectionDirection>(SourceDirection);
-			State.DirectTargetDirection = static_cast<EFactoryConnectionDirection>(TargetDirection);
+			State.bConnectOnConstruct = false;
 		}
 	}
 }
 
 void FLiftAutoConnectManager::PostConstructMessageDeserialization()
 {
-	// Rebuild the preview from the received seams instead of searching again.
+	// Rebuild the seams the placing player saw, in the same order so claims resolve the same way.
+	TArray<FLocatedEndpoint> Targets;
+	GatherTargets(Targets);
+	TArray<FLocatedEndpoint> Blockers;
+	Blockers.Reserve(BlueprintEndpoints.Num());
+	for (const FLiftEndpoint& Endpoint : BlueprintEndpoints)
+	{
+		Blockers.Add({Endpoint, Endpoint.GetLocation()});
+	}
+
+	TSet<FLiftEndpoint> Claimed;
+	int32 Requested = 0;
+	int32 Rebuilt = 0;
 	for (int32 Index = 0; Index < States.Num(); ++Index)
 	{
 		FSeamState& State = States[Index];
-		const FLiftEndpoint Target = State.GetTarget();
-		// The placing player's tier choice arrives as the recipe; only resolve one if it is missing.
-		const TSubclassOf<UFGRecipe> Recipe = !Target.HasBuildable() ? nullptr
-			: State.Recipe ? State.Recipe
-			: ResolveRecipe(State.Source, Target);
-		State.bValid = false;
-		if (!Recipe)
+		State.bSnapped = false;
+		State.ClearTarget();
+		if (!State.bConnectOnConstruct)
 		{
 			DisableBridge(State);
 			continue;
 		}
-		if (State.bDirect)
+		++Requested;
+		UpdateState(State, Index, Claimed, Targets, Blockers);
+		if (State.bValid && State.TargetBuildable.IsValid())
 		{
-			State.Recipe = Recipe;
-			State.bValid = true;
-			DisableBridge(State);
-			continue;
+			Claimed.Add(State.GetTarget());
+			State.bSnapped = true;
+			++Rebuilt;
 		}
-		if (State.Flow == ELiftFlow::Unknown)
+		else
 		{
-			State.Flow = SeamSearch::ResolveFlow(State.Source, Target);
-		}
-		State.bValid = EnsureBridge(State, Index, Recipe) &&
-			FLiftBridgeHologram::Configure(State.Bridge, State.Source, Target, State.Flow, false);
-		if (!State.bValid)
-		{
-			DisableBridge(State);
+			UE_LOG(LogConveyorLiftAutoConnect, Warning, TEXT("State %d: %s connected in the preview but found no seam on construction"),
+				Index, *State.Source.Describe());
 		}
 	}
+	UE_LOG(LogConveyorLiftAutoConnect, Verbose, TEXT("Construct message: rebuilt %d of %d requested seams (%d world endpoints)"),
+		Rebuilt, Requested, Targets.Num());
 }
 
 void FLiftAutoConnectManager::Construct(TArray<AFGBuildable*>& OutConstructedBridgeBuildables, FNetConstructionID NetConstructionID)

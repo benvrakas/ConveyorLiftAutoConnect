@@ -1,3 +1,8 @@
+# 1.1.3
+
+- Fixed: large blueprints could again not be placed onto another blueprint once all of their lifts lined up. The
+  placement request now carries only a few bytes for the mod, however many lifts connect.
+
 # 1.1.2
 
 - Fixed: stacking a blueprint onto another blueprint connected only some of the lifts. The game's position rounding

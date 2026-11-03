@@ -55,7 +55,7 @@ private:
 		int32 ContinuationSlot = INDEX_NONE;
 		UFGFactoryConnectionComponent* ConstructedContinuation = nullptr;
 
-		// The chosen seam, sent with the construct message.
+		// The chosen seam.
 		TWeakObjectPtr<AFGBuildable> TargetBuildable;
 		ELiftEndpointKind TargetKind = ELiftEndpointKind::FloorHole;
 		ELiftFacing TargetFacing = ELiftFacing::Up;
@@ -69,6 +69,8 @@ private:
 		TObjectPtr<AFGConveyorLiftHologram> Bridge = nullptr;
 
 		bool bValid = false;
+		// Received in the construct message: the placing player's preview connected this seam.
+		bool bConnectOnConstruct = false;
 		TOptional<FBridgeConfigKey> ConfiguredBridge;
 		// Last logged reason this state found no seam, with digits masked.
 		FString LastRefusal;
@@ -102,6 +104,8 @@ private:
 	TArray<TWeakObjectPtr<AFGBuildable>> NearbyBuildables;
 	TSet<int32> ReportedBlockedStates;
 
+	// Upper bound on the seam count read from a construct message.
+	static constexpr int32 MaxSerializedStates = 65536;
 	static constexpr int32 UpdateTimingInterval = 300;
 	int32 UpdateTimingCount = 0;
 	double UpdateTimingTotalSeconds = 0.0;

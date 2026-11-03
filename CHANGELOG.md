@@ -4,6 +4,17 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+## [Plus 1.1.3] - 2026-11-03
+
+### Fixed
+
+- The construct message carries one bit per seam plus the tier source and longest
+  lift setting; the receiver repeats the seam search in
+  `PostConstructMessageDeserialization`. Large blueprints already fill most of the
+  64 KB `SerializedHologramData` limit, and with every seam's target reference
+  and port name a fully connecting stack went over it again, so
+  `Server_ConstructHologram` was dropped and the blueprint could not be placed.
+
 ## [Plus 1.1.2] - 2026-11-03
 
 ### Fixed
