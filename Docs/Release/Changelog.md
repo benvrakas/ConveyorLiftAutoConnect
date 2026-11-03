@@ -1,3 +1,7 @@
+# 1.1.5
+
+- Fixed: 1.1.4 crashed the game when a blueprint was placed.
+
 # 1.1.4
 
 - Fixed: in multiplayer, joining players could not place large blueprints onto other blueprints. The lift previews

@@ -1,6 +1,7 @@
 #include "ConveyorLiftAutoConnectModule.h"
 
 #include "FGConstructDisqualifier.h"
+#include "FGConstructionMessageInterface.h"
 #include "Equipment/FGBuildGunBuild.h"
 #include "FGRecipe.h"
 #include "Hologram/FGBlueprintHologram.h"
@@ -46,8 +47,12 @@ void FConveyorLiftAutoConnectModule::StartupModule()
 	// Leaves bridge children out of the construct message; the receiver rebuilds them from the manager's seam bits.
 	BlueprintSerializeConstructMessageHook = SUBSCRIBE_METHOD_VIRTUAL(AFGBlueprintHologram::SerializeConstructMessage,
 		GetMutableDefault<AFGBlueprintHologram>(),
-		[](auto& Scope, AFGBlueprintHologram* Hologram, FArchive& Archive, FNetConstructionID Id)
+		[](auto& Scope, AFGBlueprintHologram* InterfaceThis, FArchive& Archive, FNetConstructionID Id)
 		{
+			// The hooked body overrides an IFGConstructionMessageInterface function, so its this is that base
+			// sub-object; Scope takes it unchanged.
+			AFGBlueprintHologram* Hologram =
+				static_cast<AFGBlueprintHologram*>(reinterpret_cast<IFGConstructionMessageInterface*>(InterfaceThis));
 			if (!IsValid(Hologram) || !Archive.IsSaving())
 			{
 				return;
@@ -73,7 +78,7 @@ void FConveyorLiftAutoConnectModule::StartupModule()
 			}
 			const bool bErrorBefore = Archive.IsError();
 
-			Scope(Hologram, Archive, Id);
+			Scope(InterfaceThis, Archive, Id);
 			if (Hidden > 0)
 			{
 				Hologram->mChildren = Children;

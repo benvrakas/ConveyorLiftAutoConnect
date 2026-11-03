@@ -4,6 +4,16 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+## [Plus 1.1.5] - 2026-11-03
+
+### Fixed
+
+- Crash (access violation) when placing a blueprint, from the 1.1.4
+  `SerializeConstructMessage` hook. The hooked body overrides an
+  `IFGConstructionMessageInterface` function, so SML hands it the interface
+  sub-object (this adjustment 0x2b0); the hook used it as the hologram. It now
+  converts the pointer with `static_cast` from the interface type.
+
 ## [Plus 1.1.4] - 2026-11-03
 
 ### Fixed
