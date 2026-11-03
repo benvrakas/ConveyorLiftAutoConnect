@@ -4,6 +4,16 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+## [Plus 1.1.1] - 2026-11-03
+
+### Fixed
+
+- The construct message carries only seams with a target and no longer the bridge
+  hologram reference. With every open endpoint and its bridge written as object
+  paths, large blueprints pushed `SerializedHologramData` past the 64 KB
+  replication limit, `Server_ConstructHologram` was dropped, and the blueprint
+  could not be placed onto another blueprint.
+
 ## [Plus 1.1.0] - 2026-11-02
 
 ### Fixed

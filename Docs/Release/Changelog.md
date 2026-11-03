@@ -1,3 +1,9 @@
+# 1.1.1
+
+- Fixed: large blueprints (for example a stack of six blenders) could not be placed onto another blueprint while
+  auto-connect was on. The mod's seam data made the placement request too big for the game to send; it now sends
+  only the seams that connect.
+
 # 1.1.0
 
 - Fixed: placing a blueprint onto blueprints from an earlier session (anything loaded from a save) connected nothing

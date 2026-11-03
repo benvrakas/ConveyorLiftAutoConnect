@@ -541,8 +541,43 @@ void FLiftAutoConnectManager::HandleBuildableConnectionRemapping(AFGBuildable* B
 
 void FLiftAutoConnectManager::SerializeConstructMessage(FArchive& Archive, FNetConstructionID /*Id*/)
 {
-	for (FSeamState& State : States)
+	// Only seams with a target are sent; the message is capped at 64 KB and object references are written as paths.
+	// The bridge preview is not sent, the receiver finds it by name in PostConstructMessageDeserialization.
+	int32 SentCount = 0;
+	if (Archive.IsSaving())
 	{
+		for (const FSeamState& State : States)
+		{
+			SentCount += State.bValid && State.TargetBuildable.IsValid() ? 1 : 0;
+		}
+	}
+	Archive << SentCount;
+
+	if (Archive.IsLoading())
+	{
+		for (FSeamState& State : States)
+		{
+			State.ClearTarget();
+		}
+	}
+
+	int32 SentSoFar = 0;
+	for (int32 Index = 0; Index < States.Num() && SentSoFar < SentCount; ++Index)
+	{
+		if (Archive.IsSaving() && !(States[Index].bValid && States[Index].TargetBuildable.IsValid()))
+		{
+			continue;
+		}
+		int32 StateIndex = Index;
+		Archive << StateIndex;
+		if (!States.IsValidIndex(StateIndex))
+		{
+			UE_LOG(LogConveyorLiftAutoConnect, Error, TEXT("Construct message names seam %d of %d"), StateIndex, States.Num());
+			return;
+		}
+		FSeamState& State = States[StateIndex];
+		++SentSoFar;
+
 		UObject* Target = State.TargetBuildable.Get();
 		uint8 Kind = static_cast<uint8>(State.TargetKind);
 		uint8 Facing = static_cast<uint8>(State.TargetFacing);
@@ -551,7 +586,7 @@ void FLiftAutoConnectManager::SerializeConstructMessage(FArchive& Archive, FNetC
 		uint8 TargetDirection = static_cast<uint8>(State.DirectTargetDirection);
 
 		Archive << Target << Kind << Facing << State.TargetPort << State.Recipe << Flow;
-		Archive << SourceDirection << TargetDirection << State.bDirect << State.bSnapped << State.Bridge;
+		Archive << SourceDirection << TargetDirection << State.bDirect << State.bSnapped;
 
 		if (Archive.IsLoading())
 		{
