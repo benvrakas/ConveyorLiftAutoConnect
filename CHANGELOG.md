@@ -4,6 +4,24 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+## [Plus 1.1.4] - 2026-11-03
+
+### Fixed
+
+- Bridge preview children are left out of the blueprint's construct message
+  (hook on `AFGBlueprintHologram::SerializeConstructMessage`, saving only). The
+  overflow persisted in 1.1.3 for a multiplayer client with 24 bridge previews,
+  while the mod's own data was about 10 bytes; the receiver already rebuilds
+  the bridges from the seam bits.
+
+### Added
+
+- Verbose logs for multiplayer diagnosis: net mode and hologram name on every
+  manager log, placement request size against the 65535 byte limit (hook on
+  `UFGBuildGunStateBuild::Server_ConstructHologram`, Error when over), bridge
+  previews left out of each message, seams sent and received, seam rebuild
+  time, and each built lift or direct link.
+
 ## [Plus 1.1.3] - 2026-11-03
 
 ### Fixed

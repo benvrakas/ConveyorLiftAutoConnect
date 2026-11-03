@@ -1,6 +1,7 @@
 #include "LiftEndpoint.h"
 
 #include "Buildables/FGBuildableConveyorAttachment.h"
+#include "Engine/World.h"
 #include "Buildables/FGBuildableConveyorLift.h"
 #include "Buildables/FGBuildablePassthrough.h"
 #include "FGRecipe.h"
@@ -131,6 +132,23 @@ FTransform LiftAutoConnect::GetBuildableTransform(const AFGBuildable* Buildable,
 		}
 	}
 	return Buildable->GetActorTransform();
+}
+
+const TCHAR* LiftAutoConnect::DescribeNetMode(const UObject* WorldContext)
+{
+	const UWorld* World = IsValid(WorldContext) ? WorldContext->GetWorld() : nullptr;
+	if (!World)
+	{
+		return TEXT("no world");
+	}
+	switch (World->GetNetMode())
+	{
+	case NM_Standalone: return TEXT("standalone");
+	case NM_Client: return TEXT("client");
+	case NM_ListenServer: return TEXT("listen server");
+	case NM_DedicatedServer: return TEXT("dedicated server");
+	default: return TEXT("unknown");
+	}
 }
 
 const TCHAR* LiftAutoConnect::ToString(ELiftFlow Flow)

@@ -18,5 +18,7 @@ private:
 	static void RemoveTransientInvalidFloor(AFGConveyorLiftHologram* Hologram);
 
 	FDelegateHandle BlueprintBeginPlayHook;
+	FDelegateHandle BlueprintSerializeConstructMessageHook;
+	FDelegateHandle ConstructHologramRequestHook;
 	FDelegateHandle LiftCheckValidPlacementHook;
 };

@@ -16,6 +16,8 @@ const FName& FLiftBridgeHologram::SyntheticBridgeTag()
 	return Tag;
 }
 
+const TCHAR* FLiftBridgeHologram::ChildNamePrefix = TEXT("LiftAutoConnectBridge_");
+
 AFGConveyorLiftHologram* FLiftBridgeHologram::FindOrSpawn(AFGBlueprintHologram* Parent, int32 Slot, TSubclassOf<UFGRecipe> Recipe)
 {
 	if (!IsValid(Parent) || !Recipe)
@@ -26,8 +28,8 @@ AFGConveyorLiftHologram* FLiftBridgeHologram::FindOrSpawn(AFGBlueprintHologram* 
 	// Child names stay registered on the parent after Destroy(), so each slot and recipe keeps one child for the
 	// parent's lifetime. The path hash keeps recipes with equal short names apart.
 	const FString RecipePath = Recipe->GetPathName();
-	const FName ChildName(*FString::Printf(TEXT("LiftAutoConnectBridge_%d_%s_%s"),
-		Slot, *GetNameSafe(Recipe.Get()), *FMD5::HashAnsiString(*RecipePath)));
+	const FName ChildName(*FString::Printf(TEXT("%s%d_%s_%s"),
+		ChildNamePrefix, Slot, *GetNameSafe(Recipe.Get()), *FMD5::HashAnsiString(*RecipePath)));
 
 	AFGHologram* Child = Parent->FindChildHologramByName(ChildName);
 	if (Child == nullptr)

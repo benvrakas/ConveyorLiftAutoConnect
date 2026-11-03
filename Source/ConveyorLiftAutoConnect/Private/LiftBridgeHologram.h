@@ -12,6 +12,8 @@ class FLiftBridgeHologram
 public:
 	// Tag on generated bridge holograms; their transient InvalidFloor disqualifier is dropped.
 	static const FName& SyntheticBridgeTag();
+	// Start of every bridge child name.
+	static const TCHAR* ChildNamePrefix;
 
 	// The parent's child lift hologram for this slot and recipe, spawned disabled on first use and reused after that.
 	static AFGConveyorLiftHologram* FindOrSpawn(AFGBlueprintHologram* Parent, int32 Slot, TSubclassOf<UFGRecipe> Recipe);

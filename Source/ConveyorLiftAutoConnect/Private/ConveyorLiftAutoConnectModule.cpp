@@ -1,6 +1,8 @@
 #include "ConveyorLiftAutoConnectModule.h"
 
 #include "FGConstructDisqualifier.h"
+#include "Equipment/FGBuildGunBuild.h"
+#include "FGRecipe.h"
 #include "Hologram/FGBlueprintHologram.h"
 #include "Hologram/FGConveyorLiftHologram.h"
 #include "Interfaces/IPluginManager.h"
@@ -9,6 +11,12 @@
 #include "Patching/NativeHookManager.h"
 
 DEFINE_LOG_CATEGORY(LogConveyorLiftAutoConnect);
+
+namespace
+{
+	// Spelled without a comma so it can appear inside a hook macro argument.
+	using FChildHologramMap = TMap<FName, TObjectPtr<AFGHologram>>;
+}
 
 void FConveyorLiftAutoConnectModule::StartupModule()
 {
@@ -35,6 +43,68 @@ void FConveyorLiftAutoConnectModule::StartupModule()
 			}
 		});
 
+	// Leaves bridge children out of the construct message; the receiver rebuilds them from the manager's seam bits.
+	BlueprintSerializeConstructMessageHook = SUBSCRIBE_METHOD_VIRTUAL(AFGBlueprintHologram::SerializeConstructMessage,
+		GetMutableDefault<AFGBlueprintHologram>(),
+		[](auto& Scope, AFGBlueprintHologram* Hologram, FArchive& Archive, FNetConstructionID Id)
+		{
+			if (!IsValid(Hologram) || !Archive.IsSaving())
+			{
+				return;
+			}
+			auto IsBridgeName = [](const FName& Name)
+			{
+				return Name.ToString().StartsWith(FLiftBridgeHologram::ChildNamePrefix, ESearchCase::CaseSensitive);
+			};
+
+			const TArray<TObjectPtr<AFGHologram>> Children = Hologram->mChildren;
+			const FChildHologramMap ChildrenByName = Hologram->mChildrenNameLookupMap;
+			int32 Hidden = 0;
+			int32 HiddenEnabled = 0;
+			for (auto It = Hologram->mChildrenNameLookupMap.CreateIterator(); It; ++It)
+			{
+				if (IsBridgeName(It.Key()))
+				{
+					HiddenEnabled += IsValid(It.Value()) && !It.Value()->IsDisabled() ? 1 : 0;
+					Hologram->mChildren.Remove(It.Value());
+					It.RemoveCurrent();
+					++Hidden;
+				}
+			}
+			const bool bErrorBefore = Archive.IsError();
+
+			Scope(Hologram, Archive, Id);
+			if (Hidden > 0)
+			{
+				Hologram->mChildren = Children;
+				Hologram->mChildrenNameLookupMap = ChildrenByName;
+			}
+			UE_LOG(LogConveyorLiftAutoConnect, Verbose,
+				TEXT("Construct message of %s (%s): left %d bridge previews out (%d enabled), wrote %d other children; archive error before=%d after=%d"),
+				*GetNameSafe(Hologram), LiftAutoConnect::DescribeNetMode(Hologram), Hidden, HiddenEnabled, Children.Num() - Hidden,
+				bErrorBefore ? 1 : 0, Archive.IsError() ? 1 : 0);
+		});
+
+	// Logs the size of each placement request against the engine's 65535 byte replicated array limit.
+	ConstructHologramRequestHook = SUBSCRIBE_METHOD(UFGBuildGunStateBuild::Server_ConstructHologram,
+		[](auto& /*Scope*/, UFGBuildGunStateBuild* State, FNetConstructionID /*Id*/, FConstructHologramMessage Message)
+		{
+			const int32 Bytes = Message.SerializedHologramData.Num();
+			constexpr int32 MaxBytes = 65534;
+			const TCHAR* NetMode = LiftAutoConnect::DescribeNetMode(State);
+			if (Bytes > MaxBytes)
+			{
+				UE_LOG(LogConveyorLiftAutoConnect, Error,
+					TEXT("Placement request for %s is %d bytes (%lld bits), over the %d byte limit; the game will drop it (%s)"),
+					*GetNameSafe(Message.Recipe.Get()), Bytes, Message.NumBits, MaxBytes, NetMode);
+			}
+			else
+			{
+				UE_LOG(LogConveyorLiftAutoConnect, Verbose, TEXT("Placement request for %s is %d bytes (%lld bits) of %d (%s)"),
+					*GetNameSafe(Message.Recipe.Get()), Bytes, Message.NumBits, MaxBytes, NetMode);
+			}
+		});
+
 	LiftCheckValidPlacementHook = SUBSCRIBE_METHOD_VIRTUAL_AFTER(AFGConveyorLiftHologram::CheckValidPlacement,
 		GetMutableDefault<AFGConveyorLiftHologram>(),
 		[](AFGConveyorLiftHologram* Hologram)
@@ -49,6 +119,16 @@ void FConveyorLiftAutoConnectModule::ShutdownModule()
 	{
 		UNSUBSCRIBE_METHOD(AFGBlueprintHologram::BeginPlay, BlueprintBeginPlayHook);
 		BlueprintBeginPlayHook.Reset();
+	}
+	if (BlueprintSerializeConstructMessageHook.IsValid())
+	{
+		UNSUBSCRIBE_METHOD(AFGBlueprintHologram::SerializeConstructMessage, BlueprintSerializeConstructMessageHook);
+		BlueprintSerializeConstructMessageHook.Reset();
+	}
+	if (ConstructHologramRequestHook.IsValid())
+	{
+		UNSUBSCRIBE_METHOD(UFGBuildGunStateBuild::Server_ConstructHologram, ConstructHologramRequestHook);
+		ConstructHologramRequestHook.Reset();
 	}
 	if (LiftCheckValidPlacementHook.IsValid())
 	{

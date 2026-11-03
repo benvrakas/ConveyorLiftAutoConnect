@@ -1,3 +1,10 @@
+# 1.1.4
+
+- Fixed: in multiplayer, joining players could not place large blueprints onto other blueprints. The lift previews
+  were sent to the host with the blueprint, which made the placement request too big. 1.1.1 to 1.1.3 did not solve
+  this for joining players.
+- Detailed log now records the size of each placement request and, on the host, every lift it builds.
+
 # 1.1.3
 
 - Fixed: large blueprints could again not be placed onto another blueprint once all of their lifts lined up. The

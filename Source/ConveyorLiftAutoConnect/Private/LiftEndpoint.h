@@ -42,6 +42,8 @@ namespace LiftAutoConnect
 	// World transform of a buildable, or of its preview when it belongs to a blueprint hologram.
 	FTransform GetBuildableTransform(const AFGBuildable* Buildable, const AFGBlueprintHologram* Preview);
 	const TCHAR* ToString(ELiftFlow Flow);
+	// Standalone, client, listen server or dedicated server, for logs from multiplayer sessions.
+	const TCHAR* DescribeNetMode(const UObject* WorldContext);
 }
 
 // One place a conveyor lift can end: a side of a conveyor floor hole, or a vertical lift port of a conveyor attachment.
