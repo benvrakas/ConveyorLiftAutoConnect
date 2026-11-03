@@ -4,6 +4,14 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+## [Plus 1.1.2] - 2026-11-03
+
+### Fixed
+
+- Endpoint positions count as equal within 2 cm instead of 1 mm. Endpoints of
+  stacked blueprints were off by up to 2.4 mm, so most of their
+  lift seams found no column and only some lifts connected.
+
 ## [Plus 1.1.1] - 2026-11-03
 
 ### Fixed

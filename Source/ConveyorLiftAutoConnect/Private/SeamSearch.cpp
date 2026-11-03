@@ -3,8 +3,8 @@
 namespace
 {
 	// Largest offset, in cm, between two endpoint positions that count as the same; covers single-precision rounding
-	// of positions loaded from a save.
-	constexpr double PositionTolerance = 0.1;
+	// of saved and placed positions (up to 2.4 mm seen between stacked blueprints).
+	constexpr double PositionTolerance = 2.0;
 
 	bool IsSameColumn(const FVector& First, const FVector& Second)
 	{

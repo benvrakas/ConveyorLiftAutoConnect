@@ -1,3 +1,8 @@
+# 1.1.2
+
+- Fixed: stacking a blueprint onto another blueprint connected only some of the lifts. The game's position rounding
+  left the lift holes up to a few millimetres apart, more than the mod allowed; they now line up within 2 cm.
+
 # 1.1.1
 
 - Fixed: large blueprints (for example a stack of six blenders) could not be placed onto another blueprint while
