@@ -1,3 +1,8 @@
+# 1.1.6
+
+- Confirmed: joining players can place large blueprints onto other blueprints again (fixed in 1.1.5).
+- Detailed log is shorter again; it still reports a placement request that is too big for the game to send.
+
 # 1.1.5
 
 - Fixed: 1.1.4 crashed the game when a blueprint was placed.

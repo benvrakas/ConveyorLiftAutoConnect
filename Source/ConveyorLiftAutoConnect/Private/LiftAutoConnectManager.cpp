@@ -120,9 +120,8 @@ void FLiftAutoConnectManager::Initialize(TArray<AFGBuildable*> Buildables)
 		}
 	}
 
-	UE_LOG(LogConveyorLiftAutoConnect, Verbose, TEXT("Initialized %d open vertical endpoints of %d buildables on %s (%s) in %.1f ms"),
-		States.Num(), Buildables.Num(), *GetNameSafe(Hologram), LiftAutoConnect::DescribeNetMode(Hologram),
-		(FPlatformTime::Seconds() - StartSeconds) * 1000.0);
+	UE_LOG(LogConveyorLiftAutoConnect, Verbose, TEXT("Initialized %d open vertical endpoints in %.1f ms"),
+		States.Num(), (FPlatformTime::Seconds() - StartSeconds) * 1000.0);
 }
 
 void FLiftAutoConnectManager::UpdateAutomaticConnections(const FHitResult& /*HitResult*/, bool& OutPlaySnapEffects)
@@ -585,13 +584,6 @@ void FLiftAutoConnectManager::SerializeConstructMessage(FArchive& Archive, FNetC
 			States[First + Bit].bConnectOnConstruct = (Bits & 1 << Bit) != 0;
 		}
 	}
-	if (bMatches)
-	{
-		const int32 Flagged = States.FilterByPredicate([](const FSeamState& State) { return State.bConnectOnConstruct; }).Num();
-		UE_LOG(LogConveyorLiftAutoConnect, Verbose, TEXT("Construct message %s %d of %d seams on %s (%s), tier source %d, longest lift %.0f cm"),
-			Archive.IsLoading() ? TEXT("received") : TEXT("sends"), Flagged, StateCount, *GetNameSafe(GetHologram()),
-			LiftAutoConnect::DescribeNetMode(GetHologram()), TierSource, MaxLiftHeight);
-	}
 	if (!bMatches)
 	{
 		for (FSeamState& State : States)
@@ -604,7 +596,6 @@ void FLiftAutoConnectManager::SerializeConstructMessage(FArchive& Archive, FNetC
 void FLiftAutoConnectManager::PostConstructMessageDeserialization()
 {
 	// Rebuild the seams the placing player saw, in the same order so claims resolve the same way.
-	const double StartSeconds = FPlatformTime::Seconds();
 	TArray<FLocatedEndpoint> Targets;
 	GatherTargets(Targets);
 	TArray<FLocatedEndpoint> Blockers;
@@ -641,9 +632,8 @@ void FLiftAutoConnectManager::PostConstructMessageDeserialization()
 				Index, *State.Source.Describe());
 		}
 	}
-	UE_LOG(LogConveyorLiftAutoConnect, Verbose, TEXT("Construct message: rebuilt %d of %d requested seams (%d world endpoints) on %s (%s) in %.1f ms"),
-		Rebuilt, Requested, Targets.Num(), *GetNameSafe(GetHologram()), LiftAutoConnect::DescribeNetMode(GetHologram()),
-		(FPlatformTime::Seconds() - StartSeconds) * 1000.0);
+	UE_LOG(LogConveyorLiftAutoConnect, Verbose, TEXT("Construct message: rebuilt %d of %d requested seams (%d world endpoints)"),
+		Rebuilt, Requested, Targets.Num());
 }
 
 void FLiftAutoConnectManager::Construct(TArray<AFGBuildable*>& OutConstructedBridgeBuildables, FNetConstructionID NetConstructionID)

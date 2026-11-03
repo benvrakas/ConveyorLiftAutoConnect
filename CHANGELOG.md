@@ -4,6 +4,15 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+## [Plus 1.1.6] - 2026-11-03
+
+### Changed
+
+- Removed the 1.1.4 multiplayer diagnostics now that the construct message fix
+  is confirmed (a client placed a 24-seam stack; request 246772 bits of the
+  65534 byte limit with the bridge previews left out). Kept: the Error for a
+  placement request over the limit, and the per-seam built and linked lines.
+
 ## [Plus 1.1.5] - 2026-11-03
 
 ### Fixed

@@ -65,48 +65,33 @@ void FConveyorLiftAutoConnectModule::StartupModule()
 			const TArray<TObjectPtr<AFGHologram>> Children = Hologram->mChildren;
 			const FChildHologramMap ChildrenByName = Hologram->mChildrenNameLookupMap;
 			int32 Hidden = 0;
-			int32 HiddenEnabled = 0;
 			for (auto It = Hologram->mChildrenNameLookupMap.CreateIterator(); It; ++It)
 			{
 				if (IsBridgeName(It.Key()))
 				{
-					HiddenEnabled += IsValid(It.Value()) && !It.Value()->IsDisabled() ? 1 : 0;
 					Hologram->mChildren.Remove(It.Value());
 					It.RemoveCurrent();
 					++Hidden;
 				}
 			}
-			const bool bErrorBefore = Archive.IsError();
-
 			Scope(InterfaceThis, Archive, Id);
 			if (Hidden > 0)
 			{
 				Hologram->mChildren = Children;
 				Hologram->mChildrenNameLookupMap = ChildrenByName;
 			}
-			UE_LOG(LogConveyorLiftAutoConnect, Verbose,
-				TEXT("Construct message of %s (%s): left %d bridge previews out (%d enabled), wrote %d other children; archive error before=%d after=%d"),
-				*GetNameSafe(Hologram), LiftAutoConnect::DescribeNetMode(Hologram), Hidden, HiddenEnabled, Children.Num() - Hidden,
-				bErrorBefore ? 1 : 0, Archive.IsError() ? 1 : 0);
 		});
 
-	// Logs the size of each placement request against the engine's 65535 byte replicated array limit.
+	// Logs a placement request over the engine's 65535 byte replicated array limit, which the game drops silently.
 	ConstructHologramRequestHook = SUBSCRIBE_METHOD(UFGBuildGunStateBuild::Server_ConstructHologram,
-		[](auto& /*Scope*/, UFGBuildGunStateBuild* State, FNetConstructionID /*Id*/, FConstructHologramMessage Message)
+		[](auto& /*Scope*/, UFGBuildGunStateBuild* /*State*/, FNetConstructionID /*Id*/, FConstructHologramMessage Message)
 		{
-			const int32 Bytes = Message.SerializedHologramData.Num();
 			constexpr int32 MaxBytes = 65534;
-			const TCHAR* NetMode = LiftAutoConnect::DescribeNetMode(State);
-			if (Bytes > MaxBytes)
+			if (Message.SerializedHologramData.Num() > MaxBytes)
 			{
 				UE_LOG(LogConveyorLiftAutoConnect, Error,
-					TEXT("Placement request for %s is %d bytes (%lld bits), over the %d byte limit; the game will drop it (%s)"),
-					*GetNameSafe(Message.Recipe.Get()), Bytes, Message.NumBits, MaxBytes, NetMode);
-			}
-			else
-			{
-				UE_LOG(LogConveyorLiftAutoConnect, Verbose, TEXT("Placement request for %s is %d bytes (%lld bits) of %d (%s)"),
-					*GetNameSafe(Message.Recipe.Get()), Bytes, Message.NumBits, MaxBytes, NetMode);
+					TEXT("Placement request for %s is %d bytes (%lld bits), over the %d byte limit; the game will drop it"),
+					*GetNameSafe(Message.Recipe.Get()), Message.SerializedHologramData.Num(), Message.NumBits, MaxBytes);
 			}
 		});
 
