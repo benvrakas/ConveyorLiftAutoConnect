@@ -52,7 +52,7 @@ void FConveyorLiftAutoConnectModule::StartupModule()
 			// The hooked body overrides an IFGConstructionMessageInterface function, so its this is that base
 			// sub-object; Scope takes it unchanged.
 			AFGBlueprintHologram* Hologram =
-				static_cast<AFGBlueprintHologram*>(reinterpret_cast<IFGConstructionMessageInterface*>(InterfaceThis));
+				static_cast<AFGBlueprintHologram*>(static_cast<IFGConstructionMessageInterface*>(static_cast<void*>(InterfaceThis)));
 			if (!IsValid(Hologram) || !Archive.IsSaving())
 			{
 				return;
