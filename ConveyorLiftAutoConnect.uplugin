@@ -3,6 +3,7 @@
 	"Version": 1,
 	"VersionName": "1.1.7",
 	"SemVersion": "1.1.7",
+	"RemoteVersionRange": ">=1.1.6",
 	"GameVersion": ">=502094",
 	"FriendlyName": "Conveyor Lift Auto-Connect Plus",
 	"Description": "Connects aligned vertical conveyor endpoints between stacked blueprints with vanilla Conveyor Lifts, without the split conveyor chains that crash saves, and with fast placement.",

@@ -151,11 +151,12 @@ Multiplayer on a player-hosted game is tested: since 1.1.6 a joining player can
 place large blueprints onto other blueprints. The mod uses the game's blueprint
 construction message and adds no replicated actors or RPCs.
 
-From 1.1.7 the release includes Windows and Linux dedicated server builds. The
-Windows server DLL imports nothing the dedicated server lacks, but neither build
-has been tested on a running dedicated server yet.
+From 1.1.6 the release includes Windows and Linux dedicated server builds. The
+Linux server is tested: a joining player's stacked placements built and linked
+every lift. The Windows server build is not tested on a running server.
 
-By default, SML requires the same mod version on both sides.
+`RemoteVersionRange` in the `.uplugin` lists the versions that may play together;
+without it SML requires the remote to have at least the same version.
 
 ## Troubleshooting
 

@@ -4,23 +4,35 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
-## [Plus 1.1.7] - 2026-11-04
+## [Plus 1.1.7] - 2026-11-05
 
 ### Added
 
-- WindowsServer and LinuxServer release targets (`Config/Alpakit.ini`). The
-  server DLL imports nothing the installed dedicated server lacks; neither has
-  run on a server yet.
 - The mod's own icon, drawn by `Tools/make_icon.py` (1080 and 512 px logos and
   `Resources/Icon128.png`), replacing the original mod's AI-generated one.
+- `"RemoteVersionRange": ">=1.1.6"`: nothing on the wire changed, so 1.1.7 and
+  1.1.6 accept each other. SML's default is the remote's own version or newer,
+  which would keep a 1.1.7 client off a 1.1.6 server.
+
+### Changed
+
+- `.uplugin` `CreatedBy` and `Description` and the mod page present the mod as
+  its own, with one credit line for Vertical Conveyor Auto-Connect.
+
+## [Plus 1.1.6] - 2026-11-03
+
+### Added
+
+- WindowsServer and LinuxServer release targets (`Config/Alpakit.ini`; the
+  1.1.6 upload of 2026-11-05 was the first with them). On the Linux dedicated
+  server three client placements built, linked, regrouped and audited all 48
+  lifts with no warnings.
 
 ### Fixed
 
 - Linux server build: the construct message hook converts its `this` through
   `void*` before the `static_cast`, which clang rejected as
   `-Wreinterpret-base-class`. Same pointer as before on Windows.
-
-## [Plus 1.1.6] - 2026-11-03
 
 ### Changed
 

@@ -1,9 +1,8 @@
 # 1.1.7
 
-- New: Windows and Linux dedicated server builds. They are new and not yet tested on a running server; please report
-  any problem with your server's log.
 - New icon.
-- No changes to how lifts are placed.
+- Confirmed: works on a Linux dedicated server (server builds shipped with 1.1.6).
+- No changes to how lifts are placed; 1.1.7 and 1.1.6 can play together.
 
 # 1.1.6
 

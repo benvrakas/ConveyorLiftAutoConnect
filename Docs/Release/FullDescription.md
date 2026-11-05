@@ -32,7 +32,7 @@ Remove it and install this mod; lifts already built stay as they are. Saves made
 ## Compatibility
 
 - Satisfactory 1.2, SML 3.12. Windows client, and Windows and Linux dedicated servers.
-- Multiplayer: everyone needs this mod. Tested on player-hosted games; dedicated servers are new in 1.1.7 and not yet tested on a running server.
+- Multiplayer: everyone needs this mod. Tested on player-hosted games and on a Linux dedicated server.
 - Removing the mod leaves the generated lifts as normal Conveyor Lifts.
 
 ## Source
