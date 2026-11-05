@@ -27,8 +27,6 @@ construction networking only.
 
 # AI USAGE TRANSPARENCY
 
-This mod is based on ZeeOcho's Vertical Conveyor Auto-Connect, which was developed with extensive help from generative
-AI (OpenAI ChatGPT), including its code and documentation. The changes in this mod (the rewrite, the conveyor chain
-and save-position fixes, the placement speed-up, the settings and the release packaging) were investigated and written
-with Anthropic Claude (Claude Code), and tested in game by benvrakas. The icon is drawn by a script written with
-Claude.
+The code, documentation and release packaging were written with Anthropic Claude (Claude Code) and tested in game by
+benvrakas. The icon is drawn by a script written with Claude. The mod began as a fork of ZeeOcho's Vertical Conveyor
+Auto-Connect, which was developed with OpenAI ChatGPT; parts of its documentation and test blueprints remain.
