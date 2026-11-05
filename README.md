@@ -147,16 +147,15 @@ vanilla still considers two conveyor elements semantically connected.
 
 ### Multiplayer / dedicated servers
 
-**Multiplayer has not been tested and is not currently advertised as supported.**
+Multiplayer on a player-hosted game is tested: since 1.1.6 a joining player can
+place large blueprints onto other blueprints. The mod uses the game's blueprint
+construction message and adds no replicated actors or RPCs.
 
-The implementation uses Satisfactory/SML's blueprint construction-message path
-and avoids custom replicated actors or RPCs, so the architecture is intended to
-be multiplayer-compatible. However, no host/client or dedicated-server test has
-been performed. Users should therefore treat multiplayer behavior as unverified.
+From 1.1.7 the release includes Windows and Linux dedicated server builds. The
+Windows server DLL imports nothing the dedicated server lacks, but neither build
+has been tested on a running dedicated server yet.
 
-By default, SML requires the same mod version on both sides. Dedicated-server
-release targets should not be advertised as supported unless they are tested in
-a future release.
+By default, SML requires the same mod version on both sides.
 
 ## Troubleshooting
 

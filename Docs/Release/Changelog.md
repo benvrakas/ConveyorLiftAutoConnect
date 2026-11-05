@@ -1,3 +1,10 @@
+# 1.1.7
+
+- New: Windows and Linux dedicated server builds. They are new and not yet tested on a running server; please report
+  any problem with your server's log.
+- New icon.
+- No changes to how lifts are placed.
+
 # 1.1.6
 
 - Confirmed: joining players can place large blueprints onto other blueprints again (fixed in 1.1.5).

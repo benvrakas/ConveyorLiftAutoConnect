@@ -4,6 +4,22 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+## [Plus 1.1.7] - 2026-11-04
+
+### Added
+
+- WindowsServer and LinuxServer release targets (`Config/Alpakit.ini`). The
+  server DLL imports nothing the installed dedicated server lacks; neither has
+  run on a server yet.
+- The mod's own icon, drawn by `Tools/make_icon.py` (1080 and 512 px logos and
+  `Resources/Icon128.png`), replacing the original mod's AI-generated one.
+
+### Fixed
+
+- Linux server build: the construct message hook converts its `this` through
+  `void*` before the `static_cast`, which clang rejected as
+  `-Wreinterpret-base-class`. Same pointer as before on Windows.
+
 ## [Plus 1.1.6] - 2026-11-03
 
 ### Changed
