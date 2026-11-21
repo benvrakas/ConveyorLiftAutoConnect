@@ -4,6 +4,14 @@ All notable changes to this project will be documented here.
 
 ## [Unreleased]
 
+## [1.1.8] - 2026-11-21
+
+### Changed
+
+- For game 1.2.5.1 (the update of 18 November 2026). That update changed how the game stores conveyor belts and lifts,
+  so the previous version read the wrong data on it. Needs SML 3.12.1, which also fixes the crash when joining a
+  multiplayer game on 1.2.5.1.
+
 ## [Plus 1.1.7] - 2026-11-05
 
 ### Added
